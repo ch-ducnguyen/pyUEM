@@ -12,75 +12,82 @@ schedule = parser.add_argument_group('Schedule Arguments')
 
 # ================================================================================================================================================================ #
 mandatory.add_argument(
-    '-ws','--Server',
+    '-ws','--WorkspaceONEServer',
     required=True,
     help='Server URL for the Workspace ONE UEM API Server'
     )
 mandatory.add_argument(
-    '-wa','--Admin',
+    '-wa','--WorkspaceONEAdmin',
     required=True,
     help='An Workspace ONE UEM admin account in the tenant that is being queried.  This admin must have the API role at a minimum.'
 )
 mandatory.add_argument(
-    '-wpw','--Password',
+    '-wpw','--WorkspaceONEAdminPW',
     required=True,
     help='The password that is used by the admin specified in the username parameter'
 )
 mandatory.add_argument(
-    '-wapi','--API',
+    '-wapi','--WorkspaceONEAPIKey',
     required=True,
     help="""This is the REST API key that is generated in the Workspace ONE UEM Console.  You locate this key at All Settings -> Advanced -> API -> REST,
     and you will find the key in the API Key field.  If it is not there you may need override the settings and Enable API Access"""
 )
 # ================================================================================================================================================================ #
 optional.add_argument(
-    '-GN','--org-group-name',
+    '-GN','--OrganizationGroupName',
     required=False,
     help="""The display name of the Organization Group. You can find this at the top of the console, normally your company's name.
     Required to provide OrganizationGroupName or OrganizationGroupID."""
 )
 optional.add_argument(
-    '-GID','--org-group-id',
+    '-GID','--OrganizationGroupID',
     required=False,
     help="""The Group ID for your organization group. You can find this at the top of the console by hovering over the company name.
     Required to provide OrganizationGroupName or OrganizationGroupID."""
 )
 optional.add_argument(
-    '-d','--directory',
+    '-d','--ScriptsDirectory',
     required=False,
     help='The directory your script samples are located, default location is the current directory of this script.',
     default=os.getcwd()
 )
 optional.add_argument(
-    '-sGID','--smart-group-id',
+    '-sGID','--SmartGroupID',
     required=False,
     help=""" If provided, imported scripts will be assigned to this Smart Group. Exisiting assignments will be overwritten. 
     If wanting to assign, you are required to provide SmartGroupID or SmartGroupName. This option will prompt to select the correct Smart Group
     if multiple Smart Groups are found with a similar name."""
 )
+optional.add_argument(
+    '-sGN','--SmartGroupName',
+    required=False,
+    help="""If provided, imported scripts will be assigned to this Smart Group. Exisiting assignments will be overwritten. 
+    If wanting to assign, you are required to provide SmartGroupID or SmartGroupName. This option will prompt to select the correct Smart Group
+    if multiple Smart Groups are found with a similar name."""
+)
 # ================================================================================================================================================================ #
 toggle.add_argument(
-    '-D','--delete',
+    '-D','--DeleteScripts',
     required=False,
     action='store_false',
     help='If enabled, all scripts in your environment will be deleted. This action cannot be undone. Ensure you are targeting the correct Organization Group.'
 )
 
 toggle.add_argument(
-    '-U','--update',
+    '-U','--UpdateScripts',
     required=False,
     action='store_false',
     help='If enabled, imported scripts will update matched scripts found in the Workspace ONE UEM Console.'
 )
 
 toggle.add_argument(
-    '-E','--export',
+    '-E','--ExportScripts',
     required=False,
     action='store_false',
     help='If enabled, all scripts will be downloaded locally, this is a good option for backuping up scripts before making updates.'
 )
 toggle.add_argument(
-    '-P','--platform',
+    '-P','--Platform',
     required=False,
     action='store_false',
     help='Keep disabled to import all platforms. If enabled, determines what platform\'s scripts to import. Supported values are "Windows" or "macOS".'
