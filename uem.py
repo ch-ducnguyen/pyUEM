@@ -166,3 +166,50 @@ headerv2 = {
 }
 
 
+def OrganizationIDbyName(_OrganizationGroupName):
+    print("Getting Organization ID from Group Name")
+    endpointURL = URL + "/system/groups/search?name=" + args.OrganizationGroupName
+    response = requests.get(endpointURL, headers=headerv2)
+    webReturn = response.json()
+    # Extract the specific fields from the JSON response
+    print(webReturn)
+    OGSearchOGs = webReturn.get('OrganizationGroups')
+    OGSearchTotal = webReturn.get('TotalResults')
+    
+    if OGSearchTotal == 0:
+        print(f"Group Name: {_OrganizationGroupName} not found")
+    elif OGSearchTotal == 1:
+        Choice = 0 
+    elif OGSearchTotal > 1: 
+        ValidChoices = [og for og in OGSearchOGs]
+        ValidChoices.append('Q')
+        print("Multiple OGs found. Please select an OG from the list: ")
+        Choice = ''
+        
+        while Choice != '':
+            i = 0
+            for OG in OGSearchOGs:
+                print('{0}:{1}   {2}   {3}'.format(i,OG['Name'],OG['GroupID'],OG['Country']) )
+                i += 1
+            Choice = input('Type the number that corresponds to the OG you want, or Press "Q" to quit')
+
+            if Choice in ValidChoices:
+                if Choice == 'Q':
+                    print('Exiting Script')
+                    exit
+                else: 
+                    Choice = Choice 
+            else:
+                print(f'{Choice} is NOT a valid selection.')
+                print('Please try again ...')
+                Choice = ''
+        getOG = OGSearchOGs[Choice]
+        global OrganizationGroupName 
+        global WorkspaceONEOgId 
+        global WorkspaceONEGroupUUID 
+        OrganizationGroupName = getOG['Name']
+        WorkspaceONEOgId = getOG['Id']
+        WorkspaceONEGroupUUID = getOG['Uuid']
+        print(f"Organization ID for {OrganizationGroupName} = {WorkspaceONEOgId} with UUID = {WorkspaceONEGroupUUID}")
+
+
