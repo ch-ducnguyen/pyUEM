@@ -2,6 +2,9 @@
 import argparse
 import pwd
 import os 
+import requests
+import json
+import base64
 
 parser = argparse.ArgumentParser()
 
@@ -19,18 +22,12 @@ mandatory.add_argument(
 mandatory.add_argument(
     '-wa','--WorkspaceONEAdmin',
     required=True,
-    help='An Workspace ONE UEM admin account in the tenant that is being queried.  This admin must have the API role at a minimum.'
+    help='Client ID for OAuth Token'
 )
 mandatory.add_argument(
     '-wpw','--WorkspaceONEAdminPW',
     required=True,
-    help='The password that is used by the admin specified in the username parameter'
-)
-mandatory.add_argument(
-    '-wapi','--WorkspaceONEAPIKey',
-    required=True,
-    help="""This is the REST API key that is generated in the Workspace ONE UEM Console.  You locate this key at All Settings -> Advanced -> API -> REST,
-    and you will find the key in the API Key field.  If it is not there you may need override the settings and Enable API Access"""
+    help='Client Secret for OAuth Token'
 )
 # ================================================================================================================================================================ #
 optional.add_argument(
@@ -141,5 +138,31 @@ schedule.add_argument(
 args = parser.parse_args()
 
 
-# Testing
-# Testing 2
+# Global Vars
+
+URL = args.WorkspaceONEServer + "/API"
+
+AUTH_URL = 'https://apac.uemauth.vmwservices.com/connect/token'
+
+cred = {
+    'grant_type': 'client_credentials',
+    'client_id':args.WorkspaceONEAdmin,
+    'client_secret':args.WorkspaceONEAdminPW
+}
+
+TOKEN = requests.post(AUTH_URL,cred)
+TOKEN = json.loads(TOKEN.text)['access_token']
+# Construct REST HEADER
+header = {
+"Authorization" : f"Bearer {TOKEN}",
+"Accept"		: "application/json",
+"Content-Type"  : "application/json"
+}
+
+headerv2 = {
+"Authorization"  : f"Bearer {TOKEN}",
+"Accept"		 : "application/json;version=2",
+"Content-Type"   : "application/json"
+}
+
+
