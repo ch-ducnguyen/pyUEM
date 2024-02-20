@@ -5,7 +5,7 @@ import os
 import requests
 import json
 import base64
-
+import re 
 parser = argparse.ArgumentParser()
 
 mandatory = parser.add_argument_group('Mandatory Arguments')
@@ -250,6 +250,7 @@ def GetSmartGroupUUIDbyName(SGName,WorkspaceONEOgId):
     endpointURL = URL + f"/mdm/smartgroups/search?name={SGName}&managedbyorganizationgroupid={WorkspaceONEOgId}"
     response = requests.get(endpointURL,headers=header)
     webReturn = response.json()
+    print(webReturn)
     SGSearch = webReturn.get('SmartGroups')
     SGSearchTotal = webReturn.get('Total')
     
@@ -281,3 +282,26 @@ def GetSmartGroupUUIDbyName(SGName,WorkspaceONEOgId):
         getSG = SGSearch[Choice]
         SmartGroupUUID = getSG.get('SmartGroupUuid')
         return SmartGroupUUID
+
+def CheckConsoleVersion():
+    endpointURL = URL + "/system/info"
+    respnose = requests.get(endpointURL,headers=header)
+    webReturn = respnose.json()
+    ProductVersion = webReturn.get('ProductVersion')
+    Version = int(re.sub('[\.]','',ProductVersion))
+    
+    if Version >= 20100:
+        print(f"Console version : {Version}")
+        return None 
+    else:
+        print(f"Your Console Version is {ProductVersion} scripts only works on Console Version 2010 or above.")
+        Response = input("Would you like to continue anyways? Only continue if you are sure you are running 2010+ ( y / n )").lower()
+        if Response == 'y':
+            print("Yes, Continuing Anyways")
+            return None 
+        elif Response == 'n':
+            print("Existing Script")
+            exit 
+        else:
+            print("Existing Script")
+            exit 
