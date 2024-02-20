@@ -6,6 +6,11 @@ import requests
 import json
 import base64
 import re 
+import dotenv
+import time 
+
+dotenv.load_dotenv()
+
 parser = argparse.ArgumentParser()
 
 mandatory = parser.add_argument_group('Mandatory Arguments')
@@ -138,6 +143,22 @@ schedule.add_argument(
 args = parser.parse_args()
 
 
+def SaveToken(TOKEN,TIMESTAMP):
+     with open('.env','w') as f:
+        f.seek(0)
+        f.write(f"TOKEN={TOKEN}\n")
+        f.write(f"TIMESTAMP={TIMESTAMP}\n")
+        f.truncate()
+
+
+def IsTokenExpired():
+    TOKEN_TS = int(os.getenv('TIMESTAMP'))
+    CURRENT_TS = int(time.time())
+    if CURRENT_TS - TOKEN_TS > 3600: 
+        return True
+    else:
+        return False 
+
 # Global Vars
 
 URL = args.WorkspaceONEServer + "/API"
@@ -150,8 +171,22 @@ cred = {
     'client_secret':args.WorkspaceONEAdminPW
 }
 
-TOKEN = requests.post(AUTH_URL,cred)
-TOKEN = json.loads(TOKEN.text)['access_token']
+# HANDLE TOKEN 
+TOKEN = os.getenv('TOKEN')
+if TOKEN:
+    if IsTokenExpired():
+        TOKEN = requests.post(AUTH_URL,cred)
+        TOKEN = json.loads(TOKEN.text)['access_token']
+        TIMESTAMP = int(time.time())
+        SaveToken(TOKEN,TIMESTAMP)  
+    else:
+        pass 
+else:
+    TOKEN = requests.post(AUTH_URL,cred)
+    TOKEN = json.loads(TOKEN.text)['access_token']
+    TIMESTAMP = int(time.time())
+    SaveToken(TOKEN,TIMESTAMP)
+
 # Construct REST HEADER
 header = {
 "Authorization" : f"Bearer {TOKEN}",
