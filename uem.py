@@ -181,7 +181,7 @@ def OrganizationIDbyName(_OrganizationGroupName):
     elif OGSearchTotal == 1:
         Choice = 0 
     elif OGSearchTotal > 1: 
-        ValidChoices = [og for og in OGSearchOGs]
+        ValidChoices = list(range(len(OGSearchOGs)))
         ValidChoices.append('Q')
         print("Multiple OGs found. Please select an OG from the list: ")
         Choice = ''
@@ -246,5 +246,3 @@ def GetSmartGroupUUIDbyID(SGID):
     else:
         print(f"Smart Group ID {SGID} not found")
 
-
-GetSmartGroupUUIDbyID(args.SmartGroupID)
