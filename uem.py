@@ -246,3 +246,38 @@ def GetSmartGroupUUIDbyID(SGID):
     else:
         print(f"Smart Group ID {SGID} not found")
 
+def GetSmartGroupUUIDbyName(SGName,WorkspaceONEOgId):
+    endpointURL = URL + f"/mdm/smartgroups/search?name={SGName}&managedbyorganizationgroupid={WorkspaceONEOgId}"
+    response = requests.get(endpointURL,headers=header)
+    webReturn = response.json()
+    SGSearch = webReturn.get('SmartGroups')
+    SGSearchTotal = webReturn.get('Total')
+    
+    if SGSearchTotal == 0:
+        print(f"Smart Group Name: {SGName} not found. Please check your assignment group name and try again.")
+    elif SGSearchTotal == 1:
+        Choice = 0
+    elif SGSearchTotal > 1:
+        ValidChoices = list(range(len(SGSearch)))
+        ValidChoices.append('Q')
+        print("Multiple Smart Groups found. Please select an SG from the list: ")
+        Choice = ''
+        while Choice != '':
+            i = 0
+            for SG in SGSearch:
+                print("{0}: {1}   {2}   {3}".format(i,SG['Name'],SG['SmartGroupId'],SG['ManagedByOrganizationGroupName']))
+                i += 1
+            Choice = input('Type the number that corresponds to the SG you want, or Press "Q" to quit')
+            if Choice in ValidChoices:
+                if Choice == 'Q':
+                    print('Exiting Script')
+                    exit
+                else: 
+                    Choice = Choice 
+            else:
+                print(f'{Choice} is NOT a valid selection.')
+                print('Please try again ...')
+                Choice = ''
+        getSG = SGSearch[Choice]
+        SmartGroupUUID = getSG.get('SmartGroupUuid')
+        return SmartGroupUUID
