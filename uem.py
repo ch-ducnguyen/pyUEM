@@ -230,6 +230,21 @@ def GetOrganizationIDbyID(OrganizationGroupID):
     else:
         print(f"Group ID: {OrganizationGroupID} not found")
 
+def GetSmartGroupUUIDbyID(SGID):
+    print("Getting Group UUID from group name")
+    endpointURL = URL + "/mdm/smartgroups/" + SGID
+    response = requests.get(endpointURL,headers=header)
+    webReturn = response.json()
+    print(webReturn)
+    global SmartGroupID 
+    SmartGroupID = webReturn.get('SmartGroupID')
+    if SmartGroupID == SGID:
+        global SmartGroupUUID 
+        global SmartGroupName 
+        SmartGroupUUID = webReturn.get('SmartGroupUuid')
+        SmartGroupName = webReturn.get('Name')
+    else:
+        print(f"Smart Group ID {SGID} not found")
 
-GetOrganizationIDbyID(args.OrganizationGroupID)
-# OrganizationIDbyName(args.OrganizationGroupName)
+
+GetSmartGroupUUIDbyID(args.SmartGroupID)
