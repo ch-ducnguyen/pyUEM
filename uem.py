@@ -213,3 +213,23 @@ def OrganizationIDbyName(_OrganizationGroupName):
         print(f"Organization ID for {OrganizationGroupName} = {WorkspaceONEOgId} with UUID = {WorkspaceONEGroupUUID}")
 
 
+def GetOrganizationIDbyID(OrganizationGroupID):
+    print("Getting Organization ID from Group ID")
+    endpointURL = args.WorkspaceONEServer + "/system/groups/" + OrganizationGroupID
+    response = requests.get(endpointURL,headers=headerv2)
+    print(response.text)
+    webReturn = response.json()
+    webReturn = webReturn.get('OrganizationGroups')
+    global WorkspaceONEOgId 
+    WorkspaceONEOgId = webReturn['Id']
+    if WorkspaceONEOgId == OrganizationGroupID :
+        global OrganizationGroupName 
+        global WorkspaceONEGroupUUID 
+        OrganizationGroupName = webReturn['Name']
+        WorkspaceONEGroupUUID = webReturn['Uuid']
+    else:
+        print(f"Group ID: {OrganizationGroupID} not found")
+
+
+GetOrganizationIDbyID(args.OrganizationGroupID)
+# OrganizationIDbyName(args.OrganizationGroupName)
