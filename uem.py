@@ -201,7 +201,7 @@ headerv2 = {
 }
 
 
-def OrganizationIDbyName(_OrganizationGroupName):
+def GetOrganizationIDbyName(_OrganizationGroupName):
     print("Getting Organization ID from Group Name")
     endpointURL = URL + "/system/groups/search?name=" + args.OrganizationGroupName
     response = requests.get(endpointURL, headers=headerv2)
@@ -250,13 +250,13 @@ def OrganizationIDbyName(_OrganizationGroupName):
 
 def GetOrganizationIDbyID(OrganizationGroupID):
     print("Getting Organization ID from Group ID")
-    endpointURL = args.WorkspaceONEServer + "/system/groups/" + OrganizationGroupID
-    response = requests.get(endpointURL,headers=headerv2)
-    print(response.text)
+    endpointURL = URL + "/system/groups/" + OrganizationGroupID
+    response = requests.get(endpointURL,headers=header)
+    # print(response.text)
     webReturn = response.json()
-    webReturn = webReturn.get('OrganizationGroups')
+    # print(webReturn)
     global WorkspaceONEOgId 
-    WorkspaceONEOgId = webReturn['Id']
+    WorkspaceONEOgId = str(webReturn['Id']['Value'])
     if WorkspaceONEOgId == OrganizationGroupID :
         global OrganizationGroupName 
         global WorkspaceONEGroupUUID 
@@ -284,8 +284,9 @@ def GetSmartGroupUUIDbyID(SGID):
 def GetSmartGroupUUIDbyName(SGName,WorkspaceONEOgId):
     endpointURL = URL + f"/mdm/smartgroups/search?name={SGName}&managedbyorganizationgroupid={WorkspaceONEOgId}"
     response = requests.get(endpointURL,headers=header)
+    # print(response.text)
     webReturn = response.json()
-    print(webReturn)
+    # print(webReturn)
     SGSearch = webReturn.get('SmartGroups')
     SGSearchTotal = webReturn.get('Total')
     
