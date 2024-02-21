@@ -344,7 +344,7 @@ def CheckConsoleVersion():
 
 def GetScript():
     print("Getting List of Script in the Console")
-    endpointURL = URL + "/mdm/groups/" + args.WorkspaceONEGroupUUID + "/scripts?page=1000"
+    endpointURL = URL + "/mdm/groups/" + WorkspaceONEGroupUUID + "/scripts?page=1000"
     response = requests.get(endpointURL,headers=headerv2)
     Scripts = response.json()
     if Scripts:
