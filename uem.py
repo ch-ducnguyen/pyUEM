@@ -352,3 +352,62 @@ def GetScript():
     else:
         print("No scripts found in console.")
     return Scripts
+
+def SetScript(Description,Context,ScriptName,Timeout,Script,Script_Type,OS,Architecture,Variables):
+    endpointURL = URL + "/mdm/groups/" + WorkspaceONEGroupUUID + "/scripts"
+    if Variables:
+        KeyValuePair = Variables.split(';')
+        VariableBody = []
+
+        for i in KeyValuePair:
+            Key = i.split(',')[0]
+            Value = i.split(',')[1]
+            VariableBody.append({'name': Key,'value':Value})
+    
+    if not Architecture:
+        Architecture = "UNKNOWN"
+    body = {
+        'name'                  : ScriptName,
+        'description'           : Description,
+        'platform'              : OS, 
+        'script_type'           : Script_Type,
+        'platform_architecture' : Architecture,
+        'execution_context'     : Context,
+        'script_data'           : Script,
+        'timeout'               : Timeout,
+        'script_variables'      : VariableBody,
+        'allowed_in_catalog'    : False
+    }
+    
+    webReturn = requests.post(endpointURL,headers=header,json=body)
+    Status = webReturn
+    return Status 
+
+def UpdateScript(Description,Context,ScriptName,Timeout,Script,Script_Type,OS,Architecture,Variables,ScriptUUID):
+    endpointURL = URL + "/mdm/scripts/" + ScriptUUID
+    
+    if Variables:
+        KeyValuePair = Variables.split(';')
+        VariableBody = []
+
+        for i in KeyValuePair:
+            Key = i.split(',')[0]
+            Value = i.split(',')[1]
+            VariableBody.append({'name': Key,'value':Value})
+    if not Architecture:
+        Architecture = "UNKNOWN"
+    body = {
+        'name'                  : ScriptName,
+        'description'           : Description,
+        'platform'              : OS, 
+        'script_type'           : Script_Type,
+        'platform_architecture' : Architecture,
+        'execution_context'     : Context,
+        'script_data'           : Script,
+        'timeout'               : Timeout,
+        'script_variables'      : VariableBody,
+        'allowed_in_catalog'    : False
+    }
+    webReturn = requests.post(endpointURL,headers=header,json=body)
+    Status = webReturn
+    return Status 
