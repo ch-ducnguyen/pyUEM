@@ -54,7 +54,7 @@ optional.add_argument(
     '-d','--ScriptsDirectory',
     required=False,
     help='The directory your script samples are located, default location is the current directory of this script.',
-    default=os.getcwd()
+    default=f"{os.getcwd()}/scripts/"
 )
 optional.add_argument(
     '-sGID','--SmartGroupID',
@@ -75,6 +75,7 @@ toggle.add_argument(
     '-D','--DeleteScripts',
     required=False,
     action='store_false',
+    default=False,
     help='If enabled, all scripts in your environment will be deleted. This action cannot be undone. Ensure you are targeting the correct Organization Group.'
 )
 
@@ -82,6 +83,7 @@ toggle.add_argument(
     '-U','--UpdateScripts',
     required=False,
     action='store_false',
+    default=False,
     help='If enabled, imported scripts will update matched scripts found in the Workspace ONE UEM Console.'
 )
 
@@ -89,12 +91,14 @@ toggle.add_argument(
     '-E','--ExportScripts',
     required=False,
     action='store_false',
+    default=False,
     help='If enabled, all scripts will be downloaded locally, this is a good option for backuping up scripts before making updates.'
 )
 toggle.add_argument(
     '-P','--Platform',
     required=False,
     action='store_false',
+    default=False,
     help='Keep disabled to import all platforms. If enabled, determines what platform\'s scripts to import. Supported values are "Windows" or "macOS".'
 )
 # ================================================================================================================================================================ #
@@ -273,9 +277,9 @@ def GetSmartGroupUUIDbyID(SGID):
     endpointURL = URL + "/mdm/smartgroups/" + SGID
     response = requests.get(endpointURL,headers=header)
     webReturn = response.json()
-    print(webReturn)
+    # print(webReturn)
     global SmartGroupID 
-    SmartGroupID = webReturn.get('SmartGroupID')
+    SmartGroupID = str(webReturn.get('SmartGroupID'))
     if SmartGroupID == SGID:
         global SmartGroupUUID 
         global SmartGroupName 
@@ -461,13 +465,11 @@ def GetScriptAssignments(ScriptUUID):
 
 # Assigns Scripts
 # Not like origin powershell code
-def AssignScript(script_uuid, smart_group_name, smart_group_uuid,TriggerType=None, TriggerSchedule=None,
-                  LOGIN=False, LOGOUT=False, STARTUP=False, RUN_IMMEDIATELY=False, NETWORK_CHANGE=False):
+def AssignScript(script_uuid, smart_group_name, smart_group_uuid,TriggerSchedule = None):
     endpointURL = URL + "/mdm/scripts/" + script_uuid + "/updateassignments"
     EventBody = []
     if not args.TriggerType:
         args.TriggerType = "SCHEDULE"
-        TriggerSchedule = TriggerSchedule or "FOUR_HOURS"
         if not TriggerSchedule:
             TriggerSchedule = "FOUR_HOURS"
     elif args.TriggerType == "SCHEDULE":
@@ -526,7 +528,7 @@ def AssignScript(script_uuid, smart_group_name, smart_group_uuid,TriggerType=Non
 # Parse Local PowerShell Files
 def GetLocalScripts():
     print("Parsing Local Files for Scripts")
-    script_directory = os.getcwd()
+    script_directory = f"{os.getcwd()}/scripts"
     ExcludedTemplates = 'import_script_sample|template*'
     Scripts =  [
         f for f in os.listdir(script_directory)
@@ -648,7 +650,7 @@ def Usage(script_name):
 
 # Print messages
 print(f"*****************************************************************")
-print("   Starting up the Import Process")
+print("                Starting up the Import Process")
 print(f"*****************************************************************")
 
 # Get ogID and UUID from Organizational Group Name
@@ -807,16 +809,17 @@ while NumScripts >=0:
 #Assgign Scripts to Smart Group if option is set
 # Get Smart Group ID and UUID
 if args.SmartGroupID !=0 or args.SmartGroupName:
-    print(f"Assigning Scripts to Smart Group {SmartGroupName}")
     if args.SmartGroupID:
         args.SmartGroupUUID = GetSmartGroupUUIDbyID(args.SmartGroupID)
+        print(f"Assigning Scripts to Smart Group {SmartGroupName}")
     elif args.SmartGroupName:
         args.SmartGroupUUID = GetSmartGroupUUIDbyName(args.SmartGroupName, args.WorkspaceONEOgUUID)
+        print(f"Assigning Scripts to Smart Group {args.SmartGroupName}")
     else:
         print("Please check your values for SmartGroupID or SmartGroupName")
         exit()
     
-    if args.SmartGroupUUID:
+    if SmartGroupUUID:
         # Get List of Scripts from the Console as ScriptUUID not provided when creating a Script
         Scripts = GetScripts()
         Num = Scripts['RecordCount']
@@ -849,7 +852,7 @@ if args.SmartGroupID !=0 or args.SmartGroupName:
                     AssignScript(ScriptUUID, SmartGroupName, SmartGroupUUID, args.TriggerType, args.SCHEDULE, args.LOGIN, args.LOGOUT, args.STARTUP, args.RUN_IMMEDIATELY, args.NETWORK_CHANGE)
                     print(f"Assigned Script: {Scripts[Num]['Name']} to SG: {SmartGroupName}")
 
-        print("*****************************************************************")
-        print("                    Import Process Complete")
-        print("             Please review the status messages above")
-        print("*****************************************************************")
+print("*****************************************************************")
+print("                    Import Process Complete")
+print("             Please review the status messages above")
+print("*****************************************************************")
