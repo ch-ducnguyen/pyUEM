@@ -345,7 +345,7 @@ def CheckConsoleVersion():
             print("Existing Script")
             exit 
 
-def GetScript():
+def GetScripts():
     print("Getting List of Script in the Console")
     endpointURL = URL + "/mdm/groups/" + WorkspaceONEGroupUUID + "/scripts?page=1000"
     response = requests.get(endpointURL,headers=headerv2)
@@ -386,7 +386,7 @@ def SetScript(Description,Context,ScriptName,Timeout,Script,Script_Type,OS,Archi
     Status = webReturn
     return Status 
 
-def UpdateScript(Description,Context,ScriptName,Timeout,Script,Script_Type,OS,Architecture,Variables,ScriptUUID):
+def UpdateScripts(Description,Context,ScriptName,Timeout,Script,Script_Type,OS,Architecture,Variables,ScriptUUID):
     endpointURL = URL + "/mdm/scripts/" + ScriptUUID
     
     if Variables:
@@ -452,8 +452,8 @@ def UpdateScript(Description,Context,ScriptName,Timeout,Script,Script_Type,OS,Ar
 
 
 # Returns list of SG assignments to a Sensor
-def get_ScriptAssignments(script_uuid):
-    endpointURL = URL + "/mdm/scripts/" + script_uuid + "/assignments"
+def GetScriptAssignments(ScriptUUID):
+    endpointURL = URL + "/mdm/scripts/" + ScriptUUID + "/assignments"
     #headers = {'Content-Type': 'application/json'}
     webReturn = request.get(endpointURL, headers=headerv2)
     assignments = webReturn.json()["SearchResults"]["assigned_smart_groups"]
@@ -461,7 +461,7 @@ def get_ScriptAssignments(script_uuid):
 
 # Assigns Scripts
 # Not like origin powershell code
-def Assign_Script(script_uuid, smart_group_name, smart_group_uuid,TriggerType=None, TriggerSchedule=None,
+def AssignScript(script_uuid, smart_group_name, smart_group_uuid,TriggerType=None, TriggerSchedule=None,
                   LOGIN=False, LOGOUT=False, STARTUP=False, RUN_IMMEDIATELY=False, NETWORK_CHANGE=False):
     endpointURL = URL + "/mdm/scripts/" + script_uuid + "/updateassignments"
     EventBody = []
@@ -524,7 +524,7 @@ def Assign_Script(script_uuid, smart_group_name, smart_group_uuid,TriggerType=No
         return result
 
 # Parse Local PowerShell Files
-def Get_LocalScripts():
+def GetLocalScripts():
     print("Parsing Local Files for Scripts")
     script_directory = os.getcwd()
     ExcludedTemplates = 'import_script_sample|template*'
@@ -536,12 +536,12 @@ def Get_LocalScripts():
     print(f"Found {len(Scripts)} Script Samples")
     return Scripts
     
-# scripts = Get_LocalScripts()
+# scripts = GetLocalScripts()
 # for script in scripts:
 #     print(script)  # Process each script as needed
 
 #Check for Duplicates
-def Check_Duplicates_Script(script_name, current_scripts):
+def CheckDuplicatesScript(script_name, current_scripts):
     global CurrentScriptUUID
     duplicate = False
     num = len(current_scripts) -1
@@ -554,7 +554,7 @@ def Check_Duplicates_Script(script_name, current_scripts):
     return duplicate
 
 #Delete A Script
-def Delete_A_Script(script_uuid):
+def DeleteAScript(script_uuid):
     ExistingScripts = GetScript()
     if ExistingScripts:
         num = ExistingScripts['RecordCount'] - 1
@@ -570,8 +570,8 @@ def Delete_A_Script(script_uuid):
                 status = web_return.json()
             num -= 1
 #Delete All Scripts
-def Delete_Script():
-    ExistingScripts = GetScript()
+def DeleteScript():
+    ExistingScripts = GetScripts()
     if ExistingScripts:
         num = ExistingScripts['RecordCount'] - 1
         Curren_Scripts = ExistingScripts['SearchResults']
@@ -586,20 +586,20 @@ def Delete_Script():
                 status = web_return.json()
             num -= 1
 #Gets Script's Details (Script Data)
-def Get_Script(script_uuid):
+def GetScript(script_uuid):
     endpointURL = URL + "/mdm/scripts/" + script_uuid
     web_return = request.get(endpointURL, headers=header)
     script_data = web_return.json()
     return script_data
 
 #Downloads Scripts from Console Locally
-def Export_Script(path):
-    console_scripts = GetScript()
+def ExportScript(path):
+    console_scripts = GetScripts()
     num = console_scripts['RecordCount'] - 1
     console_scripts = console_scripts['SearchResults']
     while num >= 0:
         script_uuid = console_scripts[num]['script_uuid']
-        script = Get_Script(script_uuid)
+        script = GetScript(script_uuid)
         script_body = script['script_data']
         script_type = script['script_type']
         script_name = script['name']
@@ -619,37 +619,31 @@ def Export_Script(path):
 
 #Usage
 def Usage(script_name):
-    print("[yellow][*]*****************************************************************[/yellow]")
-    print("[yellow]        [$script_name] Header Missing [/yellow]")
-    print("[yellow][*]*****************************************************************[/yellow]")
-    print("[yellow]\nPlease ensure that the $script_name script includes the required header so that it can be imported correctly.\n[/yellow]")
-    print("[yellow]Note: The \"Variables:\" metadata is optional for all platforms. Please do not include if not relevant.\n[/yellow]")
+    print("[*]*****************************************************************")
+    print("        [$script_name] Header Missing ")
+    print("[*]*****************************************************************")
+    print("\nPlease ensure that the $script_name script includes the required header so that it can be imported correctly.\n")
+    print("Note: The \"Variables:\" metadata is optional for all platforms. Please do not include if not relevant.\n")
 
-    print("\n[green]Example Windows Script Header[/green]")
-    print("[green]# Description: Description\n[/green]")
-    print("[green]# Execution Context: System | User\n[/green]")
-    print("[green]# Execution Architecture: EITHER64OR32BIT | ONLY_32BIT | ONLY_64BIT | LEGACY\n[/green]")
-    print("[green]# Timeout: ## greater than 0\n[/green]")
-    print("[green]# Variables: KEY,VALUE; KEY,VALUE\n[/green]")
-    print("[green]<YOUR POWERSHELL COMMANDS>\n[/green]")
+    print("\nExample Windows Script Header")
+    print("# Description: Description\n")
+    print("# Execution Context: System | User\n")
+    print("# Execution Architecture: EITHER64OR32BIT | ONLY_32BIT | ONLY_64BIT | LEGACY\n")
+    print("# Timeout: ## greater than 0\n")
+    print("# Variables: KEY,VALUE; KEY,VALUE\n")
+    print("<YOUR POWERSHELL COMMANDS>\n")
 
-    print("\n[green]Example macOS/Linux Script Header[/green]")
-    print("[green]<YOUR SCRIPT COMMANDS>\n[/green]")
-    print("[green]# Description: Description\n[/green]")
-    print("[green]# Execution Context: System | User\n[/green]")
-    print("[green]# Execution Architecture: UNKNOWN\n[/green]")
-    print("[green]# Timeout: ## greater than 0\n[/green]")
-    print("[green]# Variables: KEY,VALUE; KEY,VALUE\n[/green]")
-    print("[yellow]Note: The \"Execution Architecture: UNKNOWN\" metadata is mandatory for macOS/Linux platforms.\n[/yellow]")
+    print("\nExample macOS/Linux Script Header")
+    print("<YOUR SCRIPT COMMANDS>\n")
+    print("# Description: Description\n")
+    print("# Execution Context: System | User\n")
+    print("# Execution Architecture: UNKNOWN\n")
+    print("# Timeout: ## greater than 0\n")
+    print("# Variables: KEY,VALUE; KEY,VALUE\n")
+    print("Note: The \"Execution Architecture: UNKNOWN\" metadata is mandatory for macOS/Linux platforms.\n")
 
-    input("[yellow]Press any key to continue...[/yellow]")
+    input("Press any key to continue...")
 
-#Forces the use of TLS 1.2
-ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
-
-# If a custom script directory is not provided then use the current directory
-if not args.ScriptsDirectory:
-    args.ScriptsDirectory = os.getcwd()
 
 
 # Print messages
@@ -658,14 +652,13 @@ print("   Starting up the Import Process")
 print(f"*****************************************************************")
 
 # Get ogID and UUID from Organizational Group Name
-if WorkspaceONEOgId == 0:
-    if args.OrganizationGroupName:
-        GetOrganizationIDbyName(args.OrganizationGroupName)
-    elif args.OrganizationGroupID:
-        GetOrganizationIDbyID(args.OrganizationGroupID)
-    else:
-        print("Please provide a value for OrganizationGroupName or OrganizationGroupID", file=sys.stderr)
-        sys.exit(1)  # Exit with an error code 
+if args.OrganizationGroupName:
+    GetOrganizationIDbyName(args.OrganizationGroupName)
+elif args.OrganizationGroupID:
+    GetOrganizationIDbyID(args.OrganizationGroupID)
+else:
+    print("Please provide a value for OrganizationGroupName or OrganizationGroupID", file=sys.stderr)
+    sys.exit(1)  # Exit with an error code 
 
 #Checking for Supported Console Version
 CheckConsoleVersion()
@@ -675,14 +668,15 @@ if args.ExportScripts:
     download_path = input("Input path to download Script samples. Press enter to use the current directory: ")
     if not download_path:
         download_path = "./"
-    Export_Script(download_path)
-    print("\033[93mScripts have been downloaded to", download_path, "\033[0m")  # Yellow text
-    print("\033[93m*****************************************************************\033[0m")
+    ExportScript(download_path)
+    print("*****************************************************************")
+    print("Scripts have been downloaded to", download_path)  
+    print("*****************************************************************")
     sys.exit()
 
 # If DeleteScripts switch is called, then deletes all Script samples
 if args.DeleteScripts:
-    Delete_Script()
+    DeleteScript()
     sys.exit()
 
 #Clear Variables
@@ -691,12 +685,12 @@ PSScripts = []
 NumScripts = None
 
 #Pull in Script Samples
-PSScripts = Get_LocalScripts()
+PSScripts = GetLocalScripts()
 NumScripts = len(PSScripts) - 1
 new_scripts = []
 
 #Get List of existing Scripts
-ExistingScripts = GetScript()
+ExistingScripts = GetScripts()
 if ExistingScripts:
     Num = ExistingScripts['RecordCount'] - 1
     CurrentScripts = ExistingScripts['SearchResults']
@@ -784,15 +778,15 @@ while NumScripts >=0:
         ScriptName = ScriptName.replace(" ", "_")
 
     # Check if Script Already Exists
-    if Check_Duplicates_Script(ScriptName):
+    if CheckDuplicatesScript(ScriptName):
         # If script already exists & UpdateSensor parameter is provided, then update into the console
         ScripttobeAssigned = False
-        if Update_Scripts:
+        if UpdateScripts:
             # Check if Script Already Exists
             print(f"{ScriptName} already exists in this tenant. Updating the Script in the Console")
             if not args.Platform or (args.Platform == 'Windows' and os_type == 'WIN_RT') or (args.Platform == 'macOS' and os_type == 'APPLE_OSX'):
                 ScriptUUID = CurrentScriptUUID
-                Update_Scripts(Description, Context, ScriptName, Timeout, Script, Script_Type, os_type, Architecture, args.Varibles, ScriptUUID)
+                UpdateScripts(Description, Context, ScriptName, Timeout, Script, Script_Type, os_type, Architecture, args.Varibles, ScriptUUID)
                 # Add this script to an array to be used to assign to Smart Group
                 new_scripts.append(ScriptName.replace(" ", "_"))
             else:
@@ -824,7 +818,7 @@ if args.SmartGroupID !=0 or args.SmartGroupName:
     
     if args.SmartGroupUUID:
         # Get List of Scripts from the Console as ScriptUUID not provided when creating a Script
-        Scripts = GetScript()
+        Scripts = GetScripts()
         Num = Scripts['RecordCount']
         Scripts = Scripts['SearchResults']
 
@@ -840,7 +834,7 @@ if args.SmartGroupID !=0 or args.SmartGroupName:
                 
                 if CurrentScriptsAssignmentCount > 0:
                     # Check existing assignment
-                    ScriptAssignments = get_ScriptAssignments(ScriptUUID)
+                    ScriptAssignments = GetScriptAssignments(ScriptUUID)
                     for assignment in ScriptAssignments:
                         if assignment['smart_group_uuid'] == args.SmartGroupUUID:
                             ScripttobeAssigned = False
@@ -849,13 +843,13 @@ if args.SmartGroupID !=0 or args.SmartGroupName:
                             ScripttobeAssigned = True
 
                     if ScripttobeAssigned:
-                        Assign_Script(ScriptUUID, SmartGroupName, SmartGroupUUID, args.TriggerType, args.SCHEDULE, args.LOGIN, args.LOGOUT, args.STARTUP, args.RUN_IMMEDIATELY, args.NETWORK_CHANGE)
+                        AssignScript(ScriptUUID, SmartGroupName, SmartGroupUUID, args.TriggerType, args.SCHEDULE, args.LOGIN, args.LOGOUT, args.STARTUP, args.RUN_IMMEDIATELY, args.NETWORK_CHANGE)
                         print(f"Assigned Script: {Scripts[Num]['Name']} to SG: {SmartGroupName}")
                 else:
-                    Assign_Script(ScriptUUID, SmartGroupName, SmartGroupUUID, args.TriggerType, args.SCHEDULE, args.LOGIN, args.LOGOUT, args.STARTUP, args.RUN_IMMEDIATELY, args.NETWORK_CHANGE)
+                    AssignScript(ScriptUUID, SmartGroupName, SmartGroupUUID, args.TriggerType, args.SCHEDULE, args.LOGIN, args.LOGOUT, args.STARTUP, args.RUN_IMMEDIATELY, args.NETWORK_CHANGE)
                     print(f"Assigned Script: {Scripts[Num]['Name']} to SG: {SmartGroupName}")
 
-        print("\033[93m" + "*****************************************************************")
-        print("\033[93m" + "                    Import Process Complete")
-        print("\033[93m" + "             Please review the status messages above")
-        print("\033[93m" + "*****************************************************************")
+        print("*****************************************************************")
+        print("                    Import Process Complete")
+        print("             Please review the status messages above")
+        print("*****************************************************************")
