@@ -285,8 +285,10 @@ def GetSmartGroupUUIDbyID(SGID):
         global SmartGroupName 
         SmartGroupUUID = webReturn.get('SmartGroupUuid')
         SmartGroupName = webReturn.get('Name')
+        return SmartGroupUUID
     else:
         print(f"Smart Group ID {SGID} not found")
+        return False
 
 def GetSmartGroupUUIDbyName(SGName,WorkspaceONEOgId):
     endpointURL = URL + f"/mdm/smartgroups/search?name={SGName}&managedbyorganizationgroupid={WorkspaceONEOgId}"
@@ -810,11 +812,17 @@ while NumScripts >=0:
 # Get Smart Group ID and UUID
 if args.SmartGroupID !=0 or args.SmartGroupName:
     if args.SmartGroupID:
-        args.SmartGroupUUID = GetSmartGroupUUIDbyID(args.SmartGroupID)
-        print(f"Assigning Scripts to Smart Group {SmartGroupName}")
+        SmartGroupUUID = GetSmartGroupUUIDbyID(args.SmartGroupID)
+        if SmartGroupUUID:
+            print(f"Assigning Scripts to Smart Group {SmartGroupName}")
+        else:
+            pass
     elif args.SmartGroupName:
-        args.SmartGroupUUID = GetSmartGroupUUIDbyName(args.SmartGroupName, args.WorkspaceONEOgUUID)
-        print(f"Assigning Scripts to Smart Group {args.SmartGroupName}")
+        SmartGroupUUID = GetSmartGroupUUIDbyName(args.SmartGroupName, args.WorkspaceONEOgUUID)
+        if SmartGroupUUID:
+            print(f"Assigning Scripts to Smart Group {args.SmartGroupName}")
+        else:
+            pass
     else:
         print("Please check your values for SmartGroupID or SmartGroupName")
         exit()
