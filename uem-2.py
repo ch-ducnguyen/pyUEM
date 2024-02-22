@@ -54,7 +54,7 @@ optional.add_argument(
     '-d','--ScriptsDirectory',
     required=False,
     help='The directory your script samples are located, default location is the current directory of this script.',
-    default=f"{os.getcwd()}/scripts"
+    default=f"{os.getcwd()}/scripts/"
 )
 optional.add_argument(
     '-sGID','--SmartGroupID',
@@ -701,48 +701,46 @@ if ExistingScripts:
 
 while NumScripts >=0:
     Script = PSScripts[NumScripts]
-    ScriptName = Script.split('.')[0]
+    ScriptName = Script['Name'].lower()
     print(f"Working on {ScriptName}")
     #Get the actual content
-    with open(f"{args.ScriptsDirectory}/{Script}", 'r') as file:
+    with open(Script['Fullname'], 'r') as file:
         content = file.read()
-
     usageflag = False
-
-    d = content.split('Description: ', 1)[-1]
+    d = re.findall(r"# Description :?(.*)",content)[0]
     if d:
-        Description = Description = d.split('\n', 1)[0].replace('#', '').replace('"', '').replace("'", "")
+        Description = d
     else:
         usageflag = True
     
-    c = content.split('Execution Context: ', 1)[-1]
+    c = re.findall(r"# Execution Context :?(.*)",content)[0]
     if c:
-        Context = c.split('\n', 1)[0].replace('#', '').replace('"', '').replace("'", "")
+        Context = c
     else:
         usageflag = True
 
-    a = content.split('Execution Architecture: ', 1)[-1]
+    a = re.findall(r"# Execution Architecture :?(.*)",content)[0]
     if a:
-        Architecture = a.split('\n', 1)[0].replace('#', '').replace('"', '').replace("'", "")
+        Architecture = a
     else:
         usageflag = True
 
-    t = content.split('Timeout: ', 1)[-1]
+    t = re.findall(r"# Timeout :?(.*)",content)[0]
     if t:
-        Timeout = t.split('\n', 1)[0].replace('#', '').replace('"', '').replace("'", "")
+        Timeout = t
     else:
         usageflag = True
     
-    v = content.split('Variables: ', 1)[-1]
+    v = re.findall(r"# Variables :?(.*)",content)[0]
     if v:
-        Variables = v.split('\n', 1)[0].replace('#', '').replace('"', '').replace("'", "")
+        Variables = v
     if usageflag:
         Usage(ScriptName)
         NumScripts -= 1
         continue
 
     #Encode Script
-    with open(f"{args.ScriptsDirectory}/{Script}", 'r', encoding='utf-8') as file:
+    with open(Script['Fullname'], 'r', encoding='utf-8') as file:
         Data = file.read()
         Bytes = Data.encode('utf-8')
         Script = base64.b64encode(Bytes).decode('utf-8')
@@ -782,7 +780,7 @@ while NumScripts >=0:
         ScriptName = ScriptName.replace(" ", "_")
 
     # Check if Script Already Exists
-    if CheckDuplicatesScript(ScriptName,CurrentScripts):
+    if CheckDuplicatesScript(ScriptName):
         # If script already exists & UpdateSensor parameter is provided, then update into the console
         ScripttobeAssigned = False
         if UpdateScripts:
@@ -800,7 +798,7 @@ while NumScripts >=0:
     else:
         # Import new Scripts
         if not args.Platform or (args.Platform == 'Windows' and os_type == 'WIN_RT') or (args.Platform == 'macOS' and os_type == 'APPLE_OSX'):
-            SetScript(Description, Context, ScriptName, Timeout, Script, Script_Type, os_type, Architecture, Variables)
+            SetScript(Description, Context, ScriptName, Timeout, Script, Script_Type, os_type, Architecture, args.Varibles)
             # Add this script to an array to be used to assign to Smart Group
             new_scripts.append(ScriptName.replace(" ", "_"))
         else:
