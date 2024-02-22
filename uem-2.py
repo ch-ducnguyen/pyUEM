@@ -412,42 +412,42 @@ def UpdateScript(Description,Context,ScriptName,Timeout,Script,Script_Type,OS,Ar
         'allowed_in_catalog'    : False
     }
     webReturn = requests.post(endpointURL,headers=header,json=body)
-    Status = webReturn
+    Status = webReturn.json().get('status_code')
     return Status 
 
 
 # Updates Exisiting Scripts in the Workspace ONE UEM Console
-def Update_Scripts(description, context, script_name, timeout, script, script_type, os, architecture=None, variables=None, script_uuid=None):
-    endpointURL = URL + "/mdm/scripts/" + script_uuid
-    if variables:
-        variable_string = ";".join([f"{key},{value}" for key, value in variables.items()])
-        KeyValuePair = variable_string.split(';')
-        VaribleBody = []
-        for i in KeyValuePair:
-            key = i.split(',')[0]
-            value = i.split(',')[1]
-            VaribleBody.append({"Key": key, "Value": value})
-    if not architecture:
-        architecture = "UNKNOWN"
+# def Update_Scripts(description, context, script_name, timeout, script, script_type, os, architecture=None, variables=None, script_uuid=None):
+#     endpointURL = URL + "/mdm/scripts/" + script_uuid
+#     if variables:
+#         variable_string = ";".join([f"{key},{value}" for key, value in variables.items()])
+#         KeyValuePair = variable_string.split(';')
+#         VaribleBody = []
+#         for i in KeyValuePair:
+#             key = i.split(',')[0]
+#             value = i.split(',')[1]
+#             VaribleBody.append({"Key": key, "Value": value})
+#     if not architecture:
+#         architecture = "UNKNOWN"
 
-    body = {
-        "name": script_name,
-        "description": description,
-        "platform": os,
-        "script_type": script_type,
-        "platform_architecture": architecture,
-        "execution_context": context,
-        "script_data": script,
-        "timeout": timeout,
-        "script_variables": VaribleBody,
-        "allowed_in_catalog": False
-    }
-    json_data = json.dumps(body, indent=4)
-    #This not sure
-    headers = {'Content-Type': 'application/json'}
-    webReturn = request.put(endpointURL, headers=headers, data=json_data)
-    status = webReturn.status_code
-    return status
+#     body = {
+#         "name": script_name,
+#         "description": description,
+#         "platform": os,
+#         "script_type": script_type,
+#         "platform_architecture": architecture,
+#         "execution_context": context,
+#         "script_data": script,
+#         "timeout": timeout,
+#         "script_variables": VaribleBody,
+#         "allowed_in_catalog": False
+#     }
+#     json_data = json.dumps(body, indent=4)
+#     #This not sure
+#     headers = {'Content-Type': 'application/json'}
+#     webReturn = request.put(endpointURL, headers=headers, data=json_data)
+#     status = webReturn.status_code
+#     return status
 
 
 
