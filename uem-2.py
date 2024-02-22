@@ -74,7 +74,7 @@ optional.add_argument(
 toggle.add_argument(
     '-D','--DeleteScripts',
     required=False,
-    action='store_false',
+    action='store_true',
     default=False,
     help='If enabled, all scripts in your environment will be deleted. This action cannot be undone. Ensure you are targeting the correct Organization Group.'
 )
@@ -82,7 +82,7 @@ toggle.add_argument(
 toggle.add_argument(
     '-U','--UpdateScripts',
     required=False,
-    action='store_false',
+    action='store_true',
     default=False,
     help='If enabled, imported scripts will update matched scripts found in the Workspace ONE UEM Console.'
 )
@@ -90,14 +90,14 @@ toggle.add_argument(
 toggle.add_argument(
     '-E','--ExportScripts',
     required=False,
-    action='store_false',
+    action='store_true',
     default=False,
     help='If enabled, all scripts will be downloaded locally, this is a good option for backuping up scripts before making updates.'
 )
 toggle.add_argument(
     '-P','--Platform',
     required=False,
-    action='store_false',
+    action='store_true',
     default=False,
     help='Keep disabled to import all platforms. If enabled, determines what platform\'s scripts to import. Supported values are "Windows" or "macOS".'
 )
@@ -419,6 +419,7 @@ def UpdateScripts(Description,Context,ScriptName,Timeout,Script,Script_Type,OS,A
     }
     webReturn = requests.post(endpointURL,headers=header,json=body)
     Status = webReturn.json().get('status_code')
+    print(webReturn)
     return Status 
 
 
@@ -559,7 +560,7 @@ def CheckDuplicatesScript(script_name, current_scripts):
 
 #Delete A Script
 def DeleteAScript(script_uuid):
-    ExistingScripts = GetScript()
+    ExistingScripts = GetScripts()
     if ExistingScripts:
         num = ExistingScripts['RecordCount'] - 1
         Curren_Scripts = ExistingScripts['SearchResults']
@@ -621,6 +622,11 @@ def ExportScript(path):
                 file.write(script_data_decoded)
         num -= 1
 
+def GetScriptUUIDbyName(ScriptName,ScriptList):
+    for Script in ScriptList:
+        if Script['name'] == ScriptName:
+            return Script['uuid']
+
 #Usage
 def Usage(script_name):
     print("[*]*****************************************************************")
@@ -666,7 +672,7 @@ else:
 
 #Checking for Supported Console Version
 CheckConsoleVersion()
-
+print(args)
 # Downloads Scripts Locally if using the -ExportScript parameter
 if args.ExportScripts:
     download_path = input("Input path to download Script samples. Press enter to use the current directory: ")
@@ -701,10 +707,10 @@ if ExistingScripts:
 
 while NumScripts >=0:
     Script = PSScripts[NumScripts]
-    ScriptName = Script['Name'].lower()
+    ScriptName = Script.split('.')[0]
     print(f"Working on {ScriptName}")
     #Get the actual content
-    with open(Script['Fullname'], 'r') as file:
+    with open(f"{args.ScriptsDirectory}/{Script}", 'r') as file:
         content = file.read()
     usageflag = False
     d = re.findall(r"# Description :?(.*)",content)[0]
@@ -740,7 +746,7 @@ while NumScripts >=0:
         continue
 
     #Encode Script
-    with open(Script['Fullname'], 'r', encoding='utf-8') as file:
+    with open(f"{args.ScriptsDirectory}/{Script}", 'r', encoding='utf-8') as file:
         Data = file.read()
         Bytes = Data.encode('utf-8')
         Script = base64.b64encode(Bytes).decode('utf-8')
@@ -780,15 +786,15 @@ while NumScripts >=0:
         ScriptName = ScriptName.replace(" ", "_")
 
     # Check if Script Already Exists
-    if CheckDuplicatesScript(ScriptName):
+    if CheckDuplicatesScript(ScriptName,CurrentScripts):
         # If script already exists & UpdateSensor parameter is provided, then update into the console
         ScripttobeAssigned = False
-        if UpdateScripts:
+        if args.UpdateScripts:
             # Check if Script Already Exists
             print(f"{ScriptName} already exists in this tenant. Updating the Script in the Console")
             if not args.Platform or (args.Platform == 'Windows' and os_type == 'WIN_RT') or (args.Platform == 'macOS' and os_type == 'APPLE_OSX'):
-                ScriptUUID = CurrentScriptUUID
-                UpdateScripts(Description, Context, ScriptName, Timeout, Script, Script_Type, os_type, Architecture, args.Varibles, ScriptUUID)
+                ScriptUUID = GetScriptUUIDbyName(ScriptName,CurrentScripts)
+                UpdateScripts(Description, Context, ScriptName, Timeout, Script, Script_Type, os_type, Architecture, Variables, ScriptUUID)
                 # Add this script to an array to be used to assign to Smart Group
                 new_scripts.append(ScriptName.replace(" ", "_"))
             else:
@@ -798,7 +804,7 @@ while NumScripts >=0:
     else:
         # Import new Scripts
         if not args.Platform or (args.Platform == 'Windows' and os_type == 'WIN_RT') or (args.Platform == 'macOS' and os_type == 'APPLE_OSX'):
-            SetScript(Description, Context, ScriptName, Timeout, Script, Script_Type, os_type, Architecture, args.Varibles)
+            SetScript(Description, Context, ScriptName, Timeout, Script, Script_Type, os_type, Architecture, Variables)
             # Add this script to an array to be used to assign to Smart Group
             new_scripts.append(ScriptName.replace(" ", "_"))
         else:
