@@ -54,7 +54,7 @@ optional.add_argument(
     '-d','--ScriptsDirectory',
     required=False,
     help='The directory your script samples are located, default location is the current directory of this script.',
-    default=f"{os.getcwd()}/scripts/"
+    default=f"{os.getcwd()}/scripts"
 )
 optional.add_argument(
     '-sGID','--SmartGroupID',
@@ -701,10 +701,10 @@ if ExistingScripts:
 
 while NumScripts >=0:
     Script = PSScripts[NumScripts]
-    ScriptName = Script['Name'].lower()
+    ScriptName = Script.split('.')[0]
     print(f"Working on {ScriptName}")
     #Get the actual content
-    with open(Script['Fullname'], 'r') as file:
+    with open(f"{args.ScriptsDirectory}/{Script}", 'r') as file:
         content = file.read()
 
     usageflag = False
@@ -742,7 +742,7 @@ while NumScripts >=0:
         continue
 
     #Encode Script
-    with open(Script['Fullname'], 'r', encoding='utf-8') as file:
+    with open(f"{args.ScriptsDirectory}/{Script}", 'r', encoding='utf-8') as file:
         Data = file.read()
         Bytes = Data.encode('utf-8')
         Script = base64.b64encode(Bytes).decode('utf-8')
@@ -782,7 +782,7 @@ while NumScripts >=0:
         ScriptName = ScriptName.replace(" ", "_")
 
     # Check if Script Already Exists
-    if CheckDuplicatesScript(ScriptName):
+    if CheckDuplicatesScript(ScriptName,CurrentScripts):
         # If script already exists & UpdateSensor parameter is provided, then update into the console
         ScripttobeAssigned = False
         if UpdateScripts:
@@ -800,7 +800,7 @@ while NumScripts >=0:
     else:
         # Import new Scripts
         if not args.Platform or (args.Platform == 'Windows' and os_type == 'WIN_RT') or (args.Platform == 'macOS' and os_type == 'APPLE_OSX'):
-            SetScript(Description, Context, ScriptName, Timeout, Script, Script_Type, os_type, Architecture, args.Varibles)
+            SetScript(Description, Context, ScriptName, Timeout, Script, Script_Type, os_type, Architecture, Variables)
             # Add this script to an array to be used to assign to Smart Group
             new_scripts.append(ScriptName.replace(" ", "_"))
         else:
