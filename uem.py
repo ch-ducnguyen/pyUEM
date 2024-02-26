@@ -353,7 +353,7 @@ def CheckConsoleVersion():
 
 def GetScripts():
     print("Getting List of Script in the Console")
-    endpointURL = URL + "/mdm/groups/" + WorkspaceONEGroupUUID + "/scripts?page=1000"
+    endpointURL = URL + "/mdm/groups/" + WorkspaceONEGroupUUID + "/scripts"
     response = requests.get(endpointURL,headers=headerv2)
     Scripts = response.json()
     if Scripts:
@@ -389,6 +389,7 @@ def SetScript(Description,Context,ScriptName,Timeout,Script,Script_Type,OS,Archi
     }
     
     webReturn = requests.post(endpointURL,headers=header,json=body)
+    print(webReturn.text)
     Status = webReturn
     return Status 
 
@@ -417,10 +418,9 @@ def UpdateScripts(Description,Context,ScriptName,Timeout,Script,Script_Type,OS,A
         'script_variables'      : VariableBody,
         'allowed_in_catalog'    : False
     }
-    webReturn = requests.post(endpointURL,headers=header,json=body)
-    Status = webReturn.json().get('status_code')
-    print(webReturn)
-    return Status 
+    webReturn = requests.get(endpointURL,headers=header,json=body)
+    Status = webReturn.json()
+    return webReturn.status_code 
 
 
 # Updates Exisiting Scripts in the Workspace ONE UEM Console
@@ -524,7 +524,7 @@ def AssignScript(script_uuid, smart_group_name, smart_group_uuid,TriggerSchedule
         }
         json_data = json.dumps(body, indent=2)
         headers = {'Content-Type': 'application/json'}
-        webReturn = request.post(endpointURL, headers=headers, data=json_data)
+        webReturn = request.post(endpointURL, headers=header, data=json_data)
         result  = webReturn.json()
         return result
 
@@ -625,7 +625,7 @@ def ExportScript(path):
 def GetScriptUUIDbyName(ScriptName,ScriptList):
     for Script in ScriptList:
         if Script['name'] == ScriptName:
-            return Script['uuid']
+            return Script['script_uuid']
 
 #Usage
 def Usage(script_name):
@@ -839,12 +839,12 @@ if args.SmartGroupID !=0 or args.SmartGroupName:
 
         for Num in range (Num - 1, -1, -1):
              # iterate through Console scripts and get the name
-            ConsoleScript = Scripts[Num]['Name'].replace(" ", "_")
+            ConsoleScript = Scripts[Num]['name'].replace(" ", "_")
 
             newscript = next((script for script in new_scripts if script == ConsoleScript), None)
             if newscript:
                 # Check if assigned
-                CurrentScriptsAssignmentCount = Scripts[Num]['assigned_count']
+                CurrentScriptsAssignmentCount = Scripts[Num]['assignment_count']
                 ScriptUUID = Scripts[Num]['script_uuid']
                 
                 if CurrentScriptsAssignmentCount > 0:
@@ -858,11 +858,11 @@ if args.SmartGroupID !=0 or args.SmartGroupName:
                             ScripttobeAssigned = True
 
                     if ScripttobeAssigned:
-                        AssignScript(ScriptUUID, SmartGroupName, SmartGroupUUID, args.TriggerType, args.SCHEDULE, args.LOGIN, args.LOGOUT, args.STARTUP, args.RUN_IMMEDIATELY, args.NETWORK_CHANGE)
-                        print(f"Assigned Script: {Scripts[Num]['Name']} to SG: {SmartGroupName}")
+                        AssignScript(ScriptUUID, SmartGroupName, SmartGroupUUID, args.TriggerType)
+                        print(f"Assigned Script: {Scripts[Num]['name']} to SG: {SmartGroupName}")
                 else:
-                    AssignScript(ScriptUUID, SmartGroupName, SmartGroupUUID, args.TriggerType, args.SCHEDULE, args.LOGIN, args.LOGOUT, args.STARTUP, args.RUN_IMMEDIATELY, args.NETWORK_CHANGE)
-                    print(f"Assigned Script: {Scripts[Num]['Name']} to SG: {SmartGroupName}")
+                    AssignScript(ScriptUUID, SmartGroupName, SmartGroupUUID, args.TriggerType)
+                    print(f"Assigned Script: {Scripts[Num]['name']} to SG: {SmartGroupName}")
 
 print("*****************************************************************")
 print("                    Import Process Complete")
