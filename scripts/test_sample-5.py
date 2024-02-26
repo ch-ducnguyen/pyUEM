@@ -1,7 +1,7 @@
-#!/bin/sh
-echo "Hello World"
+#!/bin/python3
+print("Hello World wrg wefef")
 # Description : Test 
 # Execution Context : System
-# Execution Architecture : Linux
+# Execution Architecture : 1
 # Timeout : 1000
 # Variables : VAR1,VALUE1;VAR2,VALUE2
