@@ -418,9 +418,8 @@ def UpdateScripts(Description,Context,ScriptName,Timeout,Script,Script_Type,OS,A
         'script_variables'      : VariableBody,
         'allowed_in_catalog'    : False
     }
-    webReturn = requests.get(endpointURL,headers=header,json=body)
-    Status = webReturn.json()
-    return webReturn.status_code 
+    webReturn = requests.put(endpointURL,headers=header,json=body)
+    return webReturn 
 
 
 # Updates Exisiting Scripts in the Workspace ONE UEM Console
@@ -469,7 +468,7 @@ def GetScriptAssignments(ScriptUUID):
 # Assigns Scripts
 # Not like origin powershell code
 def AssignScript(script_uuid, smart_group_name, smart_group_uuid,TriggerSchedule = None):
-    endpointURL = URL + "/mdm/scripts/" + script_uuid + "/updateassignments"
+    endpointURL = "https://eovk0g5w08m2sej.m.pipedream.net"
     EventBody = []
     if not args.TriggerType:
         args.TriggerType = "SCHEDULE"
@@ -523,10 +522,10 @@ def AssignScript(script_uuid, smart_group_name, smart_group_uuid,TriggerSchedule
             "assignments": assignment_body
         }
         json_data = json.dumps(body, indent=2)
+        print(json_data)
         headers = {'Content-Type': 'application/json'}
         webReturn = request.post(endpointURL, headers=header, data=json_data)
-        result  = webReturn.status_code
-        return result
+        return webReturn
 
 # Parse Local PowerShell Files
 def GetLocalScripts():
@@ -794,7 +793,11 @@ while NumScripts >=0:
             print(f"{ScriptName} already exists in this tenant. Updating the Script in the Console")
             if not args.Platform or (args.Platform == 'Windows' and os_type == 'WIN_RT') or (args.Platform == 'macOS' and os_type == 'APPLE_OSX'):
                 ScriptUUID = GetScriptUUIDbyName(ScriptName,CurrentScripts)
-                UpdateScripts(Description, Context, ScriptName, Timeout, Script, Script_Type, os_type, Architecture, Variables, ScriptUUID)
+                UpdateStatus = UpdateScripts(Description, Context, ScriptName, Timeout, Script, Script_Type, os_type, Architecture, Variables, ScriptUUID)
+                if UpdateStatus.status_code == 204:
+                    print(f"Updated {ScriptName}")
+                else:
+                    print(f"Failed to update {ScriptName}")
                 # Add this script to an array to be used to assign to Smart Group
                 new_scripts.append(ScriptName.replace(" ", "_"))
             else:
@@ -858,11 +861,17 @@ if args.SmartGroupID !=0 or args.SmartGroupName:
                             ScripttobeAssigned = True
 
                     if ScripttobeAssigned:
-                        AssignScript(ScriptUUID, SmartGroupName, SmartGroupUUID, args.TriggerType)
-                        print(f"Assigned Script: {Scripts[Num]['name']} to SG: {SmartGroupName}")
+                        AssignStatus = AssignScript(ScriptUUID, SmartGroupName, SmartGroupUUID, args.TriggerType)
+                        if AssignStatus.status_code == 204:
+                            print(f"Assigned Script: {Scripts[Num]['name']} to SG: {SmartGroupName}")
+                        else:
+                            print(f"Failed to assign script {Scripts[Num]['name']} to SG: {SmartGroupName}")
                 else:
-                    AssignScript(ScriptUUID, SmartGroupName, SmartGroupUUID, args.TriggerType)
-                    print(f"Assigned Script: {Scripts[Num]['name']} to SG: {SmartGroupName}")
+                    AssignStatus = AssignScript(ScriptUUID, SmartGroupName, SmartGroupUUID, args.TriggerType)
+                    if AssignStatus.status_code == 204:
+                        print(f"Assigned Script: {Scripts[Num]['name']} to SG: {SmartGroupName}")
+                    else:
+                        print(f"Failed to assign script {Scripts[Num]['name']} to SG: {SmartGroupName}")
 
 print("*****************************************************************")
 print("                    Import Process Complete")
