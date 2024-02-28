@@ -5,7 +5,6 @@ import os
 import requests
 import json
 import base64
-import requests as request
 import re
 import time
 from rich import print
@@ -70,6 +69,12 @@ optional.add_argument(
     If wanting to assign, you are required to provide SmartGroupID or SmartGroupName. This option will prompt to select the correct Smart Group
     if multiple Smart Groups are found with a similar name."""
 )
+
+optional.add_argument(
+    "-suuid","--ScriptUUID",
+    required=False,
+    help="ScriptUUID to delete"
+)
 # ================================================================================================================================================================ #
 toggle.add_argument(
     '-D','--DeleteScripts',
@@ -100,6 +105,14 @@ toggle.add_argument(
     action='store_true',
     default=False,
     help='Keep disabled to import all platforms. If enabled, determines what platform\'s scripts to import. Supported values are "Windows" or "macOS".'
+)
+
+toggle.add_argument(
+    '-ds','--DeleteAScript',
+    required=False,
+    action='store_true',
+    default=False,
+    help='Delete single script. Require script UUID'
 )
 # ================================================================================================================================================================ #
 
@@ -451,7 +464,7 @@ def UpdateScripts(Description,Context,ScriptName,Timeout,Script,Script_Type,OS,A
 #     json_data = json.dumps(body, indent=4)
 #     #This not sure
 #     headers = {'Content-Type': 'application/json'}
-#     webReturn = request.put(endpointURL, headers=headers, data=json_data)
+#     webReturn = requests.put(endpointURL, headers=headers, data=json_data)
 #     status = webReturn.status_code
 #     return status
 
@@ -461,14 +474,14 @@ def UpdateScripts(Description,Context,ScriptName,Timeout,Script,Script_Type,OS,A
 def GetScriptAssignments(ScriptUUID):
     endpointURL = URL + "/mdm/scripts/" + ScriptUUID + "/assignments"
     #headers = {'Content-Type': 'application/json'}
-    webReturn = request.get(endpointURL, headers=headerv2)
+    webReturn = requests.get(endpointURL, headers=headerv2)
     assignments = webReturn.json()["SearchResults"][0]["assigned_smart_groups"]
     return assignments
 
 # Assigns Scripts
 # Not like origin powershell code
 def AssignScript(script_uuid, smart_group_name, smart_group_uuid,TriggerSchedule = None):
-    endpointURL = "https://eovk0g5w08m2sej.m.pipedream.net"
+    endpointURL = URL + "/mdm/scripts/" + script_uuid + "/updateassignments"
     EventBody = []
     if not args.TriggerType:
         args.TriggerType = "SCHEDULE"
@@ -501,31 +514,29 @@ def AssignScript(script_uuid, smart_group_name, smart_group_uuid,TriggerSchedule
             EventBody.append("RUN_IMMEDIATELY")
         if args.NETWORK_CHANGE:
             EventBody.append("NETWORK_CHANGE")
-        smart_group_body = [{
-            'smart_group_uuid': smart_group_uuid,
-            'smart_group_name': smart_group_name
-        }]
-        assignment_body = [{
-            'assignement_uuid': "00000000-0000-0000-0000-000000000000",
-            'name' : smart_group_name,
-            'priority' : 1,
-            'deployment_mode' : "AUTO",
-            'show_in_catalog' : False,
-            'memberships' : smart_group_body,
-            'script_deployment' : {
-                'trigger_type' : args.TriggerType,
-                'trigger_events' : EventBody,
-                'trigger_schedule' : TriggerSchedule 
-            }
-        }]
-        body = {
-            "assignments": assignment_body
+    smart_group_body = [{
+        'smart_group_uuid': smart_group_uuid,
+        'smart_group_name': smart_group_name
+    }]
+    assignment_body = [{
+        'assignement_uuid': "00000000-0000-0000-0000-000000000000",
+        'name' : smart_group_name,
+        'priority' : 1,
+        'deployment_mode' : "AUTO",
+        'show_in_catalog' : False,
+        'memberships' : smart_group_body,
+        'script_deployment' : {
+            'trigger_type' : args.TriggerType,
+            'trigger_events' : EventBody,
+            'trigger_schedule' : TriggerSchedule 
         }
-        json_data = json.dumps(body, indent=2)
-        print(json_data)
-        headers = {'Content-Type': 'application/json'}
-        webReturn = request.post(endpointURL, headers=header, data=json_data)
-        return webReturn
+    }]
+    body = {
+        "assignments": assignment_body
+    }
+    json_data = json.dumps(body, indent=2)
+    webReturn = requests.post(endpointURL, headers=header, data=json_data)
+    return webReturn
 
 # Parse Local PowerShell Files
 def GetLocalScripts():
@@ -564,15 +575,14 @@ def DeleteAScript(script_uuid):
         num = ExistingScripts['RecordCount'] - 1
         Curren_Scripts = ExistingScripts['SearchResults']
         while num >= 0:
-            script_uuid = Curren_Scripts[num]['script_uuid']
-            script_name = Curren_Scripts[num]['Name']
-            if script_uuid:
+            console_script_uuid = Curren_Scripts[num]['script_uuid']
+            script_name = Curren_Scripts[num]['name']
+            if script_uuid == console_script_uuid:
                 print(f"Deleting Script {script_name}")
-                endpointURL = URL + "/mdm/groups/" + args.WorspaceONEGroupUUID + "/scripts/bulkdelete"
+                endpointURL = URL + "/mdm/groups/" + WorkspaceONEGroupUUID + "/scripts/bulkdelete"
                 json_data = json.dumps([script_uuid])
-                web_return = request.post(endpointURL, headers=header, data=json_data)
-                status = web_return.json()
-            num -= 1
+                webReturn = requests.post(endpointURL, headers=header, data=json_data)
+                return webReturn 
 #Delete All Scripts
 def DeleteScript():
     ExistingScripts = GetScripts()
@@ -586,13 +596,13 @@ def DeleteScript():
                 print(f"Deleting Script {script_name}")
                 endpointURL = URL + "/mdm/groups/" + args.WorspaceONEGroupUUID + "/scripts/bulkdelete"
                 json_data = json.dumps([script_uuid])
-                web_return = request.post(endpointURL, headers=header, data=json_data)
+                web_return = requests.post(endpointURL, headers=header, data=json_data)
                 status = web_return.json()
             num -= 1
 #Gets Script's Details (Script Data)
 def GetScript(script_uuid):
     endpointURL = URL + "/mdm/scripts/" + script_uuid
-    web_return = request.get(endpointURL, headers=header)
+    web_return = requests.get(endpointURL, headers=header)
     script_data = web_return.json()
     return script_data
 
@@ -872,6 +882,16 @@ if args.SmartGroupID !=0 or args.SmartGroupName:
                         print(f"Assigned Script: {Scripts[Num]['name']} to SG: {SmartGroupName}")
                     else:
                         print(f"Failed to assign script {Scripts[Num]['name']} to SG: {SmartGroupName}")
+
+# if args.DeleteAScript: 
+#     if args.ScriptUUID:
+#         DeleteStatus = DeleteAScript(args.ScriptUUID)
+#         if DeleteStatus.status_code == 204:
+#             print("Deleted script")
+#         else:
+#             print("Failed to delete script")
+#     else:
+#         print("Please provide ScriptUUID to delete")
 
 print("*****************************************************************")
 print("                    Import Process Complete")
