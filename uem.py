@@ -463,7 +463,7 @@ def GetScriptAssignments(ScriptUUID):
     endpointURL = URL + "/mdm/scripts/" + ScriptUUID + "/assignments"
     #headers = {'Content-Type': 'application/json'}
     webReturn = request.get(endpointURL, headers=headerv2)
-    assignments = webReturn.json()["SearchResults"]["assigned_smart_groups"]
+    assignments = webReturn.json()["SearchResults"][0]["assigned_smart_groups"]
     return assignments
 
 # Assigns Scripts
@@ -503,7 +503,7 @@ def AssignScript(script_uuid, smart_group_name, smart_group_uuid,TriggerSchedule
         if args.NETWORK_CHANGE:
             EventBody.append("NETWORK_CHANGE")
         smart_group_body = [{
-            'smart_group_id': smart_group_uuid,
+            'smart_group_uuid': smart_group_uuid,
             'smart_group_name': smart_group_name
         }]
         assignment_body = [{
@@ -525,7 +525,7 @@ def AssignScript(script_uuid, smart_group_name, smart_group_uuid,TriggerSchedule
         json_data = json.dumps(body, indent=2)
         headers = {'Content-Type': 'application/json'}
         webReturn = request.post(endpointURL, headers=header, data=json_data)
-        result  = webReturn.json()
+        result  = webReturn.status_code
         return result
 
 # Parse Local PowerShell Files
@@ -822,7 +822,7 @@ if args.SmartGroupID !=0 or args.SmartGroupName:
         else:
             pass
     elif args.SmartGroupName:
-        SmartGroupUUID = GetSmartGroupUUIDbyName(args.SmartGroupName, args.WorkspaceONEOgUUID)
+        SmartGroupUUID = GetSmartGroupUUIDbyName(args.SmartGroupName, WorkspaceONEOgId)
         if SmartGroupUUID:
             print(f"Assigning Scripts to Smart Group {args.SmartGroupName}")
         else:
@@ -851,7 +851,7 @@ if args.SmartGroupID !=0 or args.SmartGroupName:
                     # Check existing assignment
                     ScriptAssignments = GetScriptAssignments(ScriptUUID)
                     for assignment in ScriptAssignments:
-                        if assignment['smart_group_uuid'] == args.SmartGroupUUID:
+                        if assignment['smart_group_uuid'] == SmartGroupUUID:
                             ScripttobeAssigned = False
                             print(f"Sensor already assigned to SG: {SmartGroupName}")
                         else:
