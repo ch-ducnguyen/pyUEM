@@ -435,40 +435,6 @@ def UpdateScripts(Description,Context,ScriptName,Timeout,Script,Script_Type,OS,A
     return webReturn 
 
 
-# Updates Exisiting Scripts in the Workspace ONE UEM Console
-# def Update_Scripts(description, context, script_name, timeout, script, script_type, os, architecture=None, variables=None, script_uuid=None):
-#     endpointURL = URL + "/mdm/scripts/" + script_uuid
-#     if variables:
-#         variable_string = ";".join([f"{key},{value}" for key, value in variables.items()])
-#         KeyValuePair = variable_string.split(';')
-#         VaribleBody = []
-#         for i in KeyValuePair:
-#             key = i.split(',')[0]
-#             value = i.split(',')[1]
-#             VaribleBody.append({"Key": key, "Value": value})
-#     if not architecture:
-#         architecture = "UNKNOWN"
-
-#     body = {
-#         "name": script_name,
-#         "description": description,
-#         "platform": os,
-#         "script_type": script_type,
-#         "platform_architecture": architecture,
-#         "execution_context": context,
-#         "script_data": script,
-#         "timeout": timeout,
-#         "script_variables": VaribleBody,
-#         "allowed_in_catalog": False
-#     }
-#     json_data = json.dumps(body, indent=4)
-#     #This not sure
-#     headers = {'Content-Type': 'application/json'}
-#     webReturn = requests.put(endpointURL, headers=headers, data=json_data)
-#     status = webReturn.status_code
-#     return status
-
-
 
 # Returns list of SG assignments to a Sensor
 def GetScriptAssignments(ScriptUUID):
@@ -635,33 +601,6 @@ def GetScriptUUIDbyName(ScriptName,ScriptList):
     for Script in ScriptList:
         if Script['name'] == ScriptName:
             return Script['script_uuid']
-
-#Usage
-def Usage(script_name):
-    print("[*]*****************************************************************")
-    print("        [$script_name] Header Missing ")
-    print("[*]*****************************************************************")
-    print("\nPlease ensure that the $script_name script includes the required header so that it can be imported correctly.\n")
-    print("Note: The \"Variables:\" metadata is optional for all platforms. Please do not include if not relevant.\n")
-
-    print("\nExample Windows Script Header")
-    print("# Description: Description\n")
-    print("# Execution Context: System | User\n")
-    print("# Execution Architecture: EITHER64OR32BIT | ONLY_32BIT | ONLY_64BIT | LEGACY\n")
-    print("# Timeout: ## greater than 0\n")
-    print("# Variables: KEY,VALUE; KEY,VALUE\n")
-    print("<YOUR POWERSHELL COMMANDS>\n")
-
-    print("\nExample macOS/Linux Script Header")
-    print("<YOUR SCRIPT COMMANDS>\n")
-    print("# Description: Description\n")
-    print("# Execution Context: System | User\n")
-    print("# Execution Architecture: UNKNOWN\n")
-    print("# Timeout: ## greater than 0\n")
-    print("# Variables: KEY,VALUE; KEY,VALUE\n")
-    print("Note: The \"Execution Architecture: UNKNOWN\" metadata is mandatory for macOS/Linux platforms.\n")
-
-    input("Press any key to continue...")
 
 
 
@@ -883,15 +822,6 @@ if args.SmartGroupID !=0 or args.SmartGroupName:
                     else:
                         print(f"Failed to assign script {Scripts[Num]['name']} to SG: {SmartGroupName}")
 
-# if args.DeleteAScript: 
-#     if args.ScriptUUID:
-#         DeleteStatus = DeleteAScript(args.ScriptUUID)
-#         if DeleteStatus.status_code == 204:
-#             print("Deleted script")
-#         else:
-#             print("Failed to delete script")
-#     else:
-#         print("Please provide ScriptUUID to delete")
 
 print("*****************************************************************")
 print("                    Import Process Complete")
