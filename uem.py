@@ -724,31 +724,31 @@ while NumScripts >=0:
     usageflag = False
     d = re.findall(r"# Description :?(.*)",content)[0]
     if d:
-        Description = d
+        Description = d.strip()
     else:
         usageflag = True
     
     c = re.findall(r"# Execution Context :?(.*)",content)[0]
     if c:
-        Context = c
+        Context = c.strip()
     else:
         usageflag = True
 
     a = re.findall(r"# Execution Architecture :?(.*)",content)[0]
     if a:
-        Architecture = a
+        Architecture = a.strip()
     else:
         usageflag = True
 
     t = re.findall(r"# Timeout :?(.*)",content)[0]
     if t:
-        Timeout = t
+        Timeout = t.strip()
     else:
         usageflag = True
     
     v = re.findall(r"# Variables :?(.*)",content)[0]
     if v:
-        Variables = v
+        Variables = v.strip()
     if usageflag:
         Usage(ScriptName)
         NumScripts -= 1
