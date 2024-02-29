@@ -5,10 +5,12 @@ import os
 import requests
 import json
 import base64
-import re 
+import re
+import time
+from rich import print
+import ssl
+import sys
 import dotenv
-import time 
-
 dotenv.load_dotenv()
 
 parser = argparse.ArgumentParser()
@@ -51,7 +53,7 @@ optional.add_argument(
     '-d','--ScriptsDirectory',
     required=False,
     help='The directory your script samples are located, default location is the current directory of this script.',
-    default=os.getcwd()
+    default=f"{os.getcwd()}/scripts/"
 )
 optional.add_argument(
     '-sGID','--SmartGroupID',
@@ -67,32 +69,50 @@ optional.add_argument(
     If wanting to assign, you are required to provide SmartGroupID or SmartGroupName. This option will prompt to select the correct Smart Group
     if multiple Smart Groups are found with a similar name."""
 )
+
+optional.add_argument(
+    "-suuid","--ScriptUUID",
+    required=False,
+    help="ScriptUUID to delete"
+)
 # ================================================================================================================================================================ #
 toggle.add_argument(
     '-D','--DeleteScripts',
     required=False,
-    action='store_false',
+    action='store_true',
+    default=False,
     help='If enabled, all scripts in your environment will be deleted. This action cannot be undone. Ensure you are targeting the correct Organization Group.'
 )
 
 toggle.add_argument(
     '-U','--UpdateScripts',
     required=False,
-    action='store_false',
+    action='store_true',
+    default=False,
     help='If enabled, imported scripts will update matched scripts found in the Workspace ONE UEM Console.'
 )
 
 toggle.add_argument(
     '-E','--ExportScripts',
     required=False,
-    action='store_false',
+    action='store_true',
+    default=False,
     help='If enabled, all scripts will be downloaded locally, this is a good option for backuping up scripts before making updates.'
 )
 toggle.add_argument(
     '-P','--Platform',
     required=False,
-    action='store_false',
+    action='store_true',
+    default=False,
     help='Keep disabled to import all platforms. If enabled, determines what platform\'s scripts to import. Supported values are "Windows" or "macOS".'
+)
+
+toggle.add_argument(
+    '-ds','--DeleteAScript',
+    required=False,
+    action='store_true',
+    default=False,
+    help='Delete single script. Require script UUID'
 )
 # ================================================================================================================================================================ #
 
@@ -270,16 +290,18 @@ def GetSmartGroupUUIDbyID(SGID):
     endpointURL = URL + "/mdm/smartgroups/" + SGID
     response = requests.get(endpointURL,headers=header)
     webReturn = response.json()
-    print(webReturn)
+    # print(webReturn)
     global SmartGroupID 
-    SmartGroupID = webReturn.get('SmartGroupID')
+    SmartGroupID = str(webReturn.get('SmartGroupID'))
     if SmartGroupID == SGID:
         global SmartGroupUUID 
         global SmartGroupName 
         SmartGroupUUID = webReturn.get('SmartGroupUuid')
         SmartGroupName = webReturn.get('Name')
+        return SmartGroupUUID
     else:
         print(f"Smart Group ID {SGID} not found")
+        return False
 
 def GetSmartGroupUUIDbyName(SGName,WorkspaceONEOgId):
     endpointURL = URL + f"/mdm/smartgroups/search?name={SGName}&managedbyorganizationgroupid={WorkspaceONEOgId}"
@@ -342,9 +364,9 @@ def CheckConsoleVersion():
             print("Existing Script")
             exit 
 
-def GetScript():
+def GetScripts():
     print("Getting List of Script in the Console")
-    endpointURL = URL + "/mdm/groups/" + WorkspaceONEGroupUUID + "/scripts?page=1000"
+    endpointURL = URL + "/mdm/groups/" + WorkspaceONEGroupUUID + "/scripts"
     response = requests.get(endpointURL,headers=headerv2)
     Scripts = response.json()
     if Scripts:
@@ -380,10 +402,11 @@ def SetScript(Description,Context,ScriptName,Timeout,Script,Script_Type,OS,Archi
     }
     
     webReturn = requests.post(endpointURL,headers=header,json=body)
+    print(webReturn.text)
     Status = webReturn
     return Status 
 
-def UpdateScript(Description,Context,ScriptName,Timeout,Script,Script_Type,OS,Architecture,Variables,ScriptUUID):
+def UpdateScripts(Description,Context,ScriptName,Timeout,Script,Script_Type,OS,Architecture,Variables,ScriptUUID):
     endpointURL = URL + "/mdm/scripts/" + ScriptUUID
     
     if Variables:
@@ -408,6 +431,399 @@ def UpdateScript(Description,Context,ScriptName,Timeout,Script,Script_Type,OS,Ar
         'script_variables'      : VariableBody,
         'allowed_in_catalog'    : False
     }
-    webReturn = requests.post(endpointURL,headers=header,json=body)
-    Status = webReturn
-    return Status 
+    webReturn = requests.put(endpointURL,headers=header,json=body)
+    return webReturn 
+
+
+
+# Returns list of SG assignments to a Sensor
+def GetScriptAssignments(ScriptUUID):
+    endpointURL = URL + "/mdm/scripts/" + ScriptUUID + "/assignments"
+    #headers = {'Content-Type': 'application/json'}
+    webReturn = requests.get(endpointURL, headers=headerv2)
+    assignments = webReturn.json()["SearchResults"][0]["assigned_smart_groups"]
+    return assignments
+
+# Assigns Scripts
+# Not like origin powershell code
+def AssignScript(script_uuid, smart_group_name, smart_group_uuid,TriggerSchedule = None):
+    endpointURL = URL + "/mdm/scripts/" + script_uuid + "/updateassignments"
+    EventBody = []
+    if not args.TriggerType:
+        args.TriggerType = "SCHEDULE"
+        if not TriggerSchedule:
+            TriggerSchedule = "FOUR_HOURS"
+    elif args.TriggerType == "SCHEDULE":
+        if not TriggerSchedule:
+            TriggerSchedule = "FOUR_HOURS"
+    elif args.TriggerType == "EVENT":
+        if args.LOGIN:
+            EventBody.append("LOGIN")
+        if args.LOGOUT:
+            EventBody.append("LOGOUT")
+        if args.STARTUP:
+            EventBody.append("STARTUP")
+        if args.RUN_IMMEDIATELY:
+            EventBody.append("RUN_IMMEDIATELY")
+        if args.NETWORK_CHANGE:
+            EventBody.append("NETWORK_CHANGE")
+    elif args.TriggerType == "SCHEDULE_AND_EVENT":
+        if TriggerSchedule:
+            TriggerSchedule = "FOUR_HOURS"
+        if args.LOGIN:
+            EventBody.append("LOGIN")
+        if args.LOGOUT:
+            EventBody.append("LOGOUT")
+        if args.STARTUP:
+            EventBody.append("STARTUP")
+        if args.RUN_IMMEDIATELY:
+            EventBody.append("RUN_IMMEDIATELY")
+        if args.NETWORK_CHANGE:
+            EventBody.append("NETWORK_CHANGE")
+    smart_group_body = [{
+        'smart_group_uuid': smart_group_uuid,
+        'smart_group_name': smart_group_name
+    }]
+    assignment_body = [{
+        'assignement_uuid': "00000000-0000-0000-0000-000000000000",
+        'name' : smart_group_name,
+        'priority' : 1,
+        'deployment_mode' : "AUTO",
+        'show_in_catalog' : False,
+        'memberships' : smart_group_body,
+        'script_deployment' : {
+            'trigger_type' : args.TriggerType,
+            'trigger_events' : EventBody,
+            'trigger_schedule' : TriggerSchedule 
+        }
+    }]
+    body = {
+        "assignments": assignment_body
+    }
+    json_data = json.dumps(body, indent=2)
+    webReturn = requests.post(endpointURL, headers=header, data=json_data)
+    return webReturn
+
+# Parse Local PowerShell Files
+def GetLocalScripts():
+    print("Parsing Local Files for Scripts")
+    script_directory = f"{os.getcwd()}/scripts"
+    ExcludedTemplates = 'import_script_sample|template*'
+    Scripts =  [
+        f for f in os.listdir(script_directory)
+        if os.path.isfile(os.path.join(script_directory, f))
+        and not re.match(ExcludedTemplates, f)
+    ]
+    print(f"Found {len(Scripts)} Script Samples")
+    return Scripts
+    
+# scripts = GetLocalScripts()
+# for script in scripts:
+#     print(script)  # Process each script as needed
+
+#Check for Duplicates
+def CheckDuplicatesScript(script_name, current_scripts):
+    global CurrentScriptUUID
+    duplicate = False
+    num = len(current_scripts) -1
+    while num >=0:
+        if current_scripts[num]['name'] == script_name:
+            duplicate = True
+            CurrentScriptUUID = current_scripts[num]['script_uuid']
+            break
+        num -= 1
+    return duplicate
+
+#Delete A Script
+def DeleteAScript(script_uuid):
+    ExistingScripts = GetScripts()
+    if ExistingScripts:
+        num = ExistingScripts['RecordCount'] - 1
+        Curren_Scripts = ExistingScripts['SearchResults']
+        while num >= 0:
+            console_script_uuid = Curren_Scripts[num]['script_uuid']
+            script_name = Curren_Scripts[num]['name']
+            if script_uuid == console_script_uuid:
+                print(f"Deleting Script {script_name}")
+                endpointURL = URL + "/mdm/groups/" + WorkspaceONEGroupUUID + "/scripts/bulkdelete"
+                json_data = json.dumps([script_uuid])
+                webReturn = requests.post(endpointURL, headers=header, data=json_data)
+                return webReturn 
+#Delete All Scripts
+def DeleteScript():
+    ExistingScripts = GetScripts()
+    if ExistingScripts:
+        num = ExistingScripts['RecordCount'] - 1
+        Curren_Scripts = ExistingScripts['SearchResults']
+        while num >= 0:
+            script_uuid = Curren_Scripts[num]['script_uuid']
+            script_name = Curren_Scripts[num]['Name']
+            if script_uuid:
+                print(f"Deleting Script {script_name}")
+                endpointURL = URL + "/mdm/groups/" + args.WorspaceONEGroupUUID + "/scripts/bulkdelete"
+                json_data = json.dumps([script_uuid])
+                web_return = requests.post(endpointURL, headers=header, data=json_data)
+                status = web_return.json()
+            num -= 1
+#Gets Script's Details (Script Data)
+def GetScript(script_uuid):
+    endpointURL = URL + "/mdm/scripts/" + script_uuid
+    web_return = requests.get(endpointURL, headers=header)
+    script_data = web_return.json()
+    return script_data
+
+#Downloads Scripts from Console Locally
+def ExportScript(path):
+    console_scripts = GetScripts()
+    num = console_scripts['RecordCount'] - 1
+    console_scripts = console_scripts['SearchResults']
+    while num >= 0:
+        script_uuid = console_scripts[num]['script_uuid']
+        script = GetScript(script_uuid)
+        script_body = script['script_data']
+        script_type = script['script_type']
+        script_name = script['name']
+        print(f"Exporting {script['name']}")
+        if script_body:
+            script_data_decoded = base64.b64decode(script_body).decode('utf-8')
+            file_extension = {
+                'POWERSHELL': '.ps1',
+                '2' : '.py',
+                '4' : '.zsh',
+                '3' : '.sh'
+            }.get(script_type, '.txt')
+            file_path = os.path.join(download_path, f"{script_name}{file_extension}")
+            with open(file_path, 'w', encoding='utf-8') as file:
+                file.write(script_data_decoded)
+        num -= 1
+
+def GetScriptUUIDbyName(ScriptName,ScriptList):
+    for Script in ScriptList:
+        if Script['name'] == ScriptName:
+            return Script['script_uuid']
+
+
+
+# Print messages
+print(f"*****************************************************************")
+print("                Starting up the Import Process")
+print(f"*****************************************************************")
+
+# Get ogID and UUID from Organizational Group Name
+if args.OrganizationGroupName:
+    GetOrganizationIDbyName(args.OrganizationGroupName)
+elif args.OrganizationGroupID:
+    GetOrganizationIDbyID(args.OrganizationGroupID)
+else:
+    print("Please provide a value for OrganizationGroupName or OrganizationGroupID", file=sys.stderr)
+    sys.exit(1)  # Exit with an error code 
+
+#Checking for Supported Console Version
+CheckConsoleVersion()
+print(args)
+# Downloads Scripts Locally if using the -ExportScript parameter
+if args.ExportScripts:
+    download_path = input("Input path to download Script samples. Press enter to use the current directory: ")
+    if not download_path:
+        download_path = "./"
+    ExportScript(download_path)
+    print("*****************************************************************")
+    print("Scripts have been downloaded to", download_path)  
+    print("*****************************************************************")
+    sys.exit()
+
+# If DeleteScripts switch is called, then deletes all Script samples
+if args.DeleteScripts:
+    DeleteScript()
+    sys.exit()
+
+#Clear Variables
+# Clear variables, if they exist, avoiding potential errors
+PSScripts = []
+NumScripts = None
+
+#Pull in Script Samples
+PSScripts = GetLocalScripts()
+NumScripts = len(PSScripts) - 1
+new_scripts = []
+
+#Get List of existing Scripts
+ExistingScripts = GetScripts()
+if ExistingScripts:
+    Num = ExistingScripts['RecordCount'] - 1
+    CurrentScripts = ExistingScripts['SearchResults']
+
+while NumScripts >=0:
+    Script = PSScripts[NumScripts]
+    ScriptName = Script.split('.')[0]
+    print(f"Working on {ScriptName}")
+    #Get the actual content
+    with open(f"{args.ScriptsDirectory}/{Script}", 'r') as file:
+        content = file.read()
+    usageflag = False
+    d = re.findall(r"# Description :?(.*)",content)[0]
+    if d:
+        Description = d.strip()
+    else:
+        usageflag = True
+    
+    c = re.findall(r"# Execution Context :?(.*)",content)[0]
+    if c:
+        Context = c.strip()
+    else:
+        usageflag = True
+
+    a = re.findall(r"# Execution Architecture :?(.*)",content)[0]
+    if a:
+        Architecture = a.strip()
+    else:
+        usageflag = True
+
+    t = re.findall(r"# Timeout :?(.*)",content)[0]
+    if t:
+        Timeout = t.strip()
+    else:
+        usageflag = True
+    
+    v = re.findall(r"# Variables :?(.*)",content)[0]
+    if v:
+        Variables = v.strip()
+    if usageflag:
+        Usage(ScriptName)
+        NumScripts -= 1
+        continue
+
+    #Encode Script
+    with open(f"{args.ScriptsDirectory}/{Script}", 'r', encoding='utf-8') as file:
+        Data = file.read()
+        Bytes = Data.encode('utf-8')
+        Script = base64.b64encode(Bytes).decode('utf-8')
+    if ScriptName.endswith(".ps1"):
+        Script_Type = "POWERSHELL"
+        os_type = "WIN_RT"
+        ScriptName = ScriptName.replace(".ps1", "").replace(" ", "_")
+    elif ScriptName.endswith(".py"):
+        Script_Type = "PYTHON"
+        os_type = "APPLE_OSX"
+        ScriptName = ScriptName.replace(".py", "").replace(" ", "_")
+    elif ScriptName.endswith(".zsh"):
+        Script_Type = "ZSH"
+        os_type = "APPLE_OSX"
+        ScriptName = ScriptName.replace(".zsh", "").replace(" ", "_")
+    elif ScriptName.endswith(".sh"):
+        ShaBang = content.splitlines()[0].lower()
+        if "/bash" in ShaBang:
+            Script_Type = "BASH"
+        elif "/zsh" in ShaBang:
+            Script_Type = "ZSH"
+        else:
+            Script_Type = "BASH"
+        os_type = "APPLE_OSX"
+        ScriptName = ScriptName.replace(".sh", "").replace(" ", "_")
+    else:
+        ShaBang = content.lower()
+        if "/bash" in ShaBang:
+            Script_Type = "BASH"
+        elif "/zsh" in ShaBang:
+            Script_Type = "ZSH"
+        elif "/python" in ShaBang:
+            Script_Type = "PYTHON"
+        else:
+            Script_Type = "BASH"
+        os_type = "APPLE_OSX"
+        ScriptName = ScriptName.replace(" ", "_")
+
+    # Check if Script Already Exists
+    if CheckDuplicatesScript(ScriptName,CurrentScripts):
+        # If script already exists & UpdateSensor parameter is provided, then update into the console
+        ScripttobeAssigned = False
+        if args.UpdateScripts:
+            # Check if Script Already Exists
+            print(f"{ScriptName} already exists in this tenant. Updating the Script in the Console")
+            if not args.Platform or (args.Platform == 'Windows' and os_type == 'WIN_RT') or (args.Platform == 'macOS' and os_type == 'APPLE_OSX'):
+                ScriptUUID = GetScriptUUIDbyName(ScriptName,CurrentScripts)
+                UpdateStatus = UpdateScripts(Description, Context, ScriptName, Timeout, Script, Script_Type, os_type, Architecture, Variables, ScriptUUID)
+                if UpdateStatus.status_code == 204:
+                    print(f"Updated {ScriptName}")
+                else:
+                    print(f"Failed to update {ScriptName}")
+                # Add this script to an array to be used to assign to Smart Group
+                new_scripts.append(ScriptName.replace(" ", "_"))
+            else:
+                print(f"{ScriptName} isn't for {args.Platform}. Skipping!")
+        else:
+            print("Script is a duplicate and UpdateScript option is not set. Do Nothing.")
+    else:
+        # Import new Scripts
+        if not args.Platform or (args.Platform == 'Windows' and os_type == 'WIN_RT') or (args.Platform == 'macOS' and os_type == 'APPLE_OSX'):
+            SetScript(Description, Context, ScriptName, Timeout, Script, Script_Type, os_type, Architecture, Variables)
+            # Add this script to an array to be used to assign to Smart Group
+            new_scripts.append(ScriptName.replace(" ", "_"))
+        else:
+            print(f"{ScriptName} isn't for {args.Platform}. Skipping!")
+
+    NumScripts -= 1
+
+#Assgign Scripts to Smart Group if option is set
+# Get Smart Group ID and UUID
+if args.SmartGroupID !=0 or args.SmartGroupName:
+    if args.SmartGroupID:
+        SmartGroupUUID = GetSmartGroupUUIDbyID(args.SmartGroupID)
+        if SmartGroupUUID:
+            print(f"Assigning Scripts to Smart Group {SmartGroupName}")
+        else:
+            pass
+    elif args.SmartGroupName:
+        SmartGroupUUID = GetSmartGroupUUIDbyName(args.SmartGroupName, WorkspaceONEOgId)
+        if SmartGroupUUID:
+            print(f"Assigning Scripts to Smart Group {args.SmartGroupName}")
+        else:
+            pass
+    else:
+        print("Please check your values for SmartGroupID or SmartGroupName")
+        exit()
+    
+    if SmartGroupUUID:
+        # Get List of Scripts from the Console as ScriptUUID not provided when creating a Script
+        Scripts = GetScripts()
+        Num = Scripts['RecordCount']
+        Scripts = Scripts['SearchResults']
+
+        for Num in range (Num - 1, -1, -1):
+             # iterate through Console scripts and get the name
+            ConsoleScript = Scripts[Num]['name'].replace(" ", "_")
+
+            newscript = next((script for script in new_scripts if script == ConsoleScript), None)
+            if newscript:
+                # Check if assigned
+                CurrentScriptsAssignmentCount = Scripts[Num]['assignment_count']
+                ScriptUUID = Scripts[Num]['script_uuid']
+                
+                if CurrentScriptsAssignmentCount > 0:
+                    # Check existing assignment
+                    ScriptAssignments = GetScriptAssignments(ScriptUUID)
+                    for assignment in ScriptAssignments:
+                        if assignment['smart_group_uuid'] == SmartGroupUUID:
+                            ScripttobeAssigned = False
+                            print(f"Sensor already assigned to SG: {SmartGroupName}")
+                        else:
+                            ScripttobeAssigned = True
+
+                    if ScripttobeAssigned:
+                        AssignStatus = AssignScript(ScriptUUID, SmartGroupName, SmartGroupUUID, args.TriggerType)
+                        if AssignStatus.status_code == 204:
+                            print(f"Assigned Script: {Scripts[Num]['name']} to SG: {SmartGroupName}")
+                        else:
+                            print(f"Failed to assign script {Scripts[Num]['name']} to SG: {SmartGroupName}")
+                else:
+                    AssignStatus = AssignScript(ScriptUUID, SmartGroupName, SmartGroupUUID, args.TriggerType)
+                    if AssignStatus.status_code == 204:
+                        print(f"Assigned Script: {Scripts[Num]['name']} to SG: {SmartGroupName}")
+                    else:
+                        print(f"Failed to assign script {Scripts[Num]['name']} to SG: {SmartGroupName}")
+
+
+print("*****************************************************************")
+print("                    Import Process Complete")
+print("             Please review the status messages above")
+print("*****************************************************************")
