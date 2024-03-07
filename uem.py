@@ -374,7 +374,6 @@ def GetScripts():
     else:
         print("No scripts found in console.")
     return Scripts
-
 def SetScript(Description,Context,ScriptName,Timeout,Script,Script_Type,OS,Architecture,Variables):
     endpointURL = URL + "/mdm/groups/" + WorkspaceONEGroupUUID + "/scripts"
     if Variables:
@@ -446,16 +445,16 @@ def GetScriptAssignments(ScriptUUID):
 
 # Assigns Scripts
 # Not like origin powershell code
-def AssignScript(script_uuid, smart_group_name, smart_group_uuid,TriggerSchedule = None):
+def AssignScript (script_uuid, smart_group_name, smart_group_uuid):
     endpointURL = URL + "/mdm/scripts/" + script_uuid + "/updateassignments"
     EventBody = []
     if not args.TriggerType:
         args.TriggerType = "SCHEDULE"
-        if not TriggerSchedule:
-            TriggerSchedule = "FOUR_HOURS"
+        if not args.SCHEDULE:
+            args.SCHEDULE = "FOUR_HOURS"
     elif args.TriggerType == "SCHEDULE":
-        if not TriggerSchedule:
-            TriggerSchedule = "FOUR_HOURS"
+        if not args.SCHEDULE:
+            args.SCHEDULE = "FOUR_HOURS"
     elif args.TriggerType == "EVENT":
         if args.LOGIN:
             EventBody.append("LOGIN")
@@ -468,8 +467,8 @@ def AssignScript(script_uuid, smart_group_name, smart_group_uuid,TriggerSchedule
         if args.NETWORK_CHANGE:
             EventBody.append("NETWORK_CHANGE")
     elif args.TriggerType == "SCHEDULE_AND_EVENT":
-        if TriggerSchedule:
-            TriggerSchedule = "FOUR_HOURS"
+        if args.SCHEDULE:
+            args.SCHEDULE = "FOUR_HOURS"
         if args.LOGIN:
             EventBody.append("LOGIN")
         if args.LOGOUT:
@@ -494,7 +493,7 @@ def AssignScript(script_uuid, smart_group_name, smart_group_uuid,TriggerSchedule
         'script_deployment' : {
             'trigger_type' : args.TriggerType,
             'trigger_events' : EventBody,
-            'trigger_schedule' : TriggerSchedule 
+            'trigger_schedule' : args.SCHEDULE 
         }
     }]
     body = {
@@ -548,7 +547,7 @@ def DeleteAScript(script_uuid):
                 endpointURL = URL + "/mdm/groups/" + WorkspaceONEGroupUUID + "/scripts/bulkdelete"
                 json_data = json.dumps([script_uuid])
                 webReturn = requests.post(endpointURL, headers=header, data=json_data)
-                return webReturn 
+                return webReturn
 #Delete All Scripts
 def DeleteScript():
     ExistingScripts = GetScripts()
@@ -571,6 +570,7 @@ def GetScript(script_uuid):
     web_return = requests.get(endpointURL, headers=header)
     script_data = web_return.json()
     return script_data
+GetScript('d227ea09-2743-4244-b763-4cebb51e9d76')
 
 #Downloads Scripts from Console Locally
 def ExportScript(path):
@@ -810,13 +810,13 @@ if args.SmartGroupID !=0 or args.SmartGroupName:
                             ScripttobeAssigned = True
 
                     if ScripttobeAssigned:
-                        AssignStatus = AssignScript(ScriptUUID, SmartGroupName, SmartGroupUUID, args.TriggerType)
+                        AssignStatus = AssignScript(ScriptUUID, SmartGroupName, SmartGroupUUID, args.TriggerType, 'SCHEDULE')
                         if AssignStatus.status_code == 204:
                             print(f"Assigned Script: {Scripts[Num]['name']} to SG: {SmartGroupName}")
                         else:
                             print(f"Failed to assign script {Scripts[Num]['name']} to SG: {SmartGroupName}")
                 else:
-                    AssignStatus = AssignScript(ScriptUUID, SmartGroupName, SmartGroupUUID, args.TriggerType)
+                    AssignStatus = AssignScript(ScriptUUID, SmartGroupName, SmartGroupUUID)
                     if AssignStatus.status_code == 204:
                         print(f"Assigned Script: {Scripts[Num]['name']} to SG: {SmartGroupName}")
                     else:
