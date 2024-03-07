@@ -499,7 +499,6 @@ def AssignScript (script_uuid, smart_group_name, smart_group_uuid):
     body = {
         "assignments": assignment_body
     }
-    print(body)
     json_data = json.dumps(body, indent=2)
     webReturn = requests.post(endpointURL, headers=header, data=json_data)
     return webReturn
