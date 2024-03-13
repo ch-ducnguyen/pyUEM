@@ -2,7 +2,7 @@
 Script for automatically import Windows 10 and macOS scripts as Workspace ONE Scripts into the Workspace ONE UEM Console.  
 
 # Issues 
-- 'EVENT' and 'SCHEDULE' TriggerType doesn't work (Unknown Error)
+- ~~'EVENT' and 'SCHEDULE' TriggerType doesn't work (Unknown Error)~~
 
 # Usage 
 ```
